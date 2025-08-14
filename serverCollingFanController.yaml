@@ -1,6 +1,6 @@
 substitutions:
-  API_KEY: ""
-  OTA_PASSWORD: "your_ota_password"
+  API_KEY: "Zeikx9TPIaEuYCmaC4EgAf93MsP946vpPf0hzGjFdM0="
+  OTA_PASSWORD: "dZDYhrmYcxn_M7ih0@_W9r5jbbkaD4gk"
 
 esphome:
   name: server-colling-fan
@@ -41,27 +41,7 @@ api:
   encryption:
     key: "API_KEY"
 
-# OTA updates
 ota:
-  password: "OTA_PASSWORD"
-
-# PWM output for fan control
-output:
-  - platform: ledc
-    pin: GPIO17
-    frequency: 1000 Hz
-    id: fan_pwm
-
-fan:
-  - platform: speed
-    name: "${friendly_name} Fan"
-    output: fan_pwm
-    speed_count: 4
-
-# Optional Dallas temperature sensor
-sensor:
-  - platform: dallas
-    pin: GPIO16
-    update_interval: 30s
-    sensors:
-      - name: "${friendly_name} Temperature"
+  - platform: esphome
+    password: "OTA_PASSWORD"
+  - platform: http_request
