@@ -1,0 +1,67 @@
+substitutions:
+  API_KEY: ""
+  OTA_PASSWORD: "your_ota_password"
+
+esphome:
+  name: server-colling-fan
+  friendly_name: "Server Cooling Fan"
+  comment: "WT32-ETH01 fan controller with temperature sensor"
+  name_add_mac_suffix: true
+  platform: ESP32
+  board: esp32dev
+  framework:
+    type: esp-idf
+    version: recommended
+  project:
+    name: DoYouHost.ServerCoolingFanController
+    version: 2025.1
+
+ethernet:
+  type: LAN8720
+  mdc_pin: GPIO23
+  mdio_pin: GPIO18
+  clk:
+    pin: GPIO0
+    mode: CLK_EXT_IN
+  phy_addr: 1
+  power_pin: GPIO16
+
+debug:
+  update_interval: 5s
+
+logger:
+  baud_rate: 0
+  level: DEBUG
+
+safe_mode:
+
+api:
+  reboot_timeout: 30min
+  batch_delay: 50ms
+  encryption:
+    key: "API_KEY"
+
+# OTA updates
+ota:
+  password: "OTA_PASSWORD"
+
+# PWM output for fan control
+output:
+  - platform: ledc
+    pin: GPIO17
+    frequency: 1000 Hz
+    id: fan_pwm
+
+fan:
+  - platform: speed
+    name: "${friendly_name} Fan"
+    output: fan_pwm
+    speed_count: 4
+
+# Optional Dallas temperature sensor
+sensor:
+  - platform: dallas
+    pin: GPIO16
+    update_interval: 30s
+    sensors:
+      - name: "${friendly_name} Temperature"
