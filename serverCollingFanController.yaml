@@ -31,7 +31,6 @@ debug:
   update_interval: 5s
 
 logger:
-  baud_rate: 0
   level: DEBUG
 
 safe_mode:
@@ -84,20 +83,42 @@ sensor:
     entity_category: "diagnostic"
   
   - platform: debug
-    free:
-      name: "Heap Free"
-    psram:
-      name: "PSRAM Free"
     loop_time:
       name: "Loop Time"
     cpu_frequency:
       name: "CPU Frequency"
-    block:
-      name: "Heap Max Block"
   
   - platform: internal_temperature
     name: "Internal Temperature"
     update_interval: 60s  
+
+  - platform: pulse_meter
+    id: cabinet_fan_tach
+    name: "Cabinet Fan RPM"
+    pin:
+      number: GPIO32
+      mode: INPUT_PULLUP
+    filters:
+      - throttle_average: 3s
+      - multiply: 0.5
+    timeout: 10s
+    unit_of_measurement: rpm
+    accuracy_decimals: 0
+    icon: mdi:fan
+
+  - platform: pulse_meter
+    id: rack_fan_tach
+    name: "Rack Fan RPM"
+    pin:
+      number: GPIO33
+      mode: INPUT_PULLUP
+    filters:
+      - throttle_average: 3s
+      - multiply: 0.5
+    timeout: 10s
+    unit_of_measurement: rpm
+    accuracy_decimals: 0
+    icon: mdi:fan
 
 button:
   - platform: restart
@@ -111,3 +132,29 @@ button:
   - platform: factory_reset
     id: factory_reset_button
     name: Factory Reset
+
+output:
+  - platform: ledc
+    id: cabinet_fan_output
+    pin: GPIO5
+    min_power: 0.4
+    zero_means_zero: true
+
+  - platform: ledc
+    id: rack_fan_output
+    pin: GPIO17
+    min_power: 0.4
+    zero_means_zero: true
+
+fan:
+  - platform: speed
+    output: cabinet_fan_output
+    name: "Cabinet Fan"
+    restore_mode: RESTORE_DEFAULT_OFF 
+    speed_count: 4
+
+  - platform: speed
+    output: rack_fan_output
+    name: "Rack Fan"
+    restore_mode: RESTORE_DEFAULT_OFF
+    speed_count: 4
