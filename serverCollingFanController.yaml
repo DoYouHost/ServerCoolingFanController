@@ -7,14 +7,15 @@ esphome:
   friendly_name: "Server Cooling Fan"
   comment: "WT32-ETH01 fan controller with temperature sensor"
   name_add_mac_suffix: true
-  platform: ESP32
+  project:
+    name: "DoYouHost.ServerCoolingFanController"
+    version: "2025.1"
+
+esp32:
   board: esp32dev
   framework:
     type: esp-idf
     version: recommended
-  project:
-    name: DoYouHost.ServerCoolingFanController
-    version: 2025.1
 
 ethernet:
   type: LAN8720
@@ -39,9 +40,74 @@ api:
   reboot_timeout: 30min
   batch_delay: 50ms
   encryption:
-    key: "API_KEY"
+    key: "$API_KEY"
+
+http_request:
 
 ota:
   - platform: esphome
-    password: "OTA_PASSWORD"
+    password: "$OTA_PASSWORD"
   - platform: http_request
+
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+
+text_sensor:
+  - platform: version
+    name: ESPHome Version
+    entity_category: "diagnostic"
+
+  - platform: ethernet_info
+    ip_address:      
+      entity_category: "diagnostic"
+      name: IP Address
+    dns_address:
+      entity_category: "diagnostic"
+      name: DNS Address
+    mac_address:
+      entity_category: "diagnostic"
+      name: MAC Address
+
+binary_sensor:
+  - platform: status
+    id: esp_status
+    name: Status
+    device_class: connectivity
+
+sensor:
+  - platform: uptime
+    name: Uptime
+    update_interval: 60s
+    accuracy_decimals: 0
+    icon: mdi:clock-outline
+    entity_category: "diagnostic"
+  
+  - platform: debug
+    free:
+      name: "Heap Free"
+    psram:
+      name: "PSRAM Free"
+    loop_time:
+      name: "Loop Time"
+    cpu_frequency:
+      name: "CPU Frequency"
+    block:
+      name: "Heap Max Block"
+  
+  - platform: internal_temperature
+    name: "Internal Temperature"
+    update_interval: 60s  
+
+button:
+  - platform: restart
+    id: restart_button
+    name: Restart
+  
+  - platform: safe_mode
+    id: safe_mode_button
+    name: Safe Mode
+
+  - platform: factory_reset
+    id: factory_reset_button
+    name: Factory Reset
