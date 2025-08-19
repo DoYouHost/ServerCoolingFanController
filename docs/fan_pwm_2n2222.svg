@@ -1,0 +1,412 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="1000"
+   height="700"
+   viewBox="0 0 1000 700"
+   version="1.1"
+   id="svg51"
+   sodipodi:docname="fan_pwm_2n2222.svg"
+   inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs51" />
+  <sodipodi:namedview
+     id="namedview51"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="1.1528571"
+     inkscape:cx="402.47831"
+     inkscape:cy="181.72243"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg51"
+     showguides="true" />
+  <style
+     id="style1">
+    .wire { stroke: #000; stroke-width: 2; fill: none }
+    .thick-wire { stroke: #000; stroke-width: 3; fill: none }
+    .box { stroke: #000; fill: #fff; stroke-width: 2 }
+    .pin { stroke: #000; fill: #000 }
+    .label { font-family: Arial, sans-serif; font-size: 18px; fill: #000; font-weight: bold }
+    .text { font-family: Arial, sans-serif; font-size: 16px; fill: #000 }
+    .small { font-family: Arial, sans-serif; font-size: 14px; fill: #000 }
+    .title { font-family: Arial, sans-serif; font-size: 22px; font-weight: bold; fill: #000 }
+  </style>
+  <!-- Background -->
+  <rect
+     x="0.35929373"
+     y="0.76217514"
+     width="1000"
+     height="700"
+     fill="#ffffff"
+     stroke="#cccccc"
+     id="rect1" />
+  <!-- Title -->
+  <text
+     x="20"
+     y="35"
+     class="title"
+     id="text1">4-pin PWM Fan Control — 2N2222 (open-collector)</text>
+  <!-- 12V Supply (top left) -->
+  <circle
+     cx="256.45575"
+     cy="100.76218"
+     r="10"
+     fill="#e74c3c"
+     stroke="#000000"
+     stroke-width="2"
+     id="circle2" />
+  <text
+     x="276.45575"
+     y="105.08208"
+     class="text"
+     id="text3">+12V</text>
+  <!-- Fan Block (left side) -->
+  <rect
+     x="30"
+     y="140"
+     width="200"
+     height="140"
+     class="box"
+     rx="5"
+     id="rect3" />
+  <text
+     x="50"
+     y="165"
+     class="label"
+     id="text4">4-Pin Fan</text>
+  <text
+     x="50"
+     y="190"
+     class="text"
+     id="text5">V+ (12V)</text>
+  <text
+     x="50"
+     y="215"
+     class="text"
+     id="text6">GND</text>
+  <text
+     x="50"
+     y="263.30734"
+     class="text"
+     id="text7">PWM (input)</text>
+  <text
+     x="50"
+     y="240.46594"
+     class="text"
+     id="text8">TACH (output)</text>
+  <!-- Fan pins (right side of fan box) -->
+  <circle
+     cx="230"
+     cy="185"
+     r="5"
+     class="pin"
+     id="circle8" />
+  <circle
+     cx="230"
+     cy="210"
+     r="5"
+     class="pin"
+     id="circle9" />
+  <circle
+     cx="230"
+     cy="235"
+     r="5"
+     class="pin"
+     id="circle10" />
+  <circle
+     cx="230"
+     cy="260"
+     r="5"
+     class="pin"
+     id="circle11" />
+  <!-- ESP32 GPIO labels (top center) -->
+  <text
+     x="347.46869"
+     y="76.319893"
+     class="text"
+     id="text11">ESP32 GPIO (LEDC)</text>
+  <text
+     x="508.16678"
+     y="535.59808"
+     class="text"
+     id="text12">ESP32 GPIO (pulse_meter)</text>
+  <!-- Base resistor (between ESP and transistor) -->
+  <rect
+     x="350"
+     y="120"
+     width="80"
+     height="25"
+     class="box"
+     rx="3"
+     id="rect12" />
+  <text
+     x="373.92813"
+     y="137.39777"
+     class="text"
+     id="text13">1kΩ</text>
+  <!-- 2N2222 Transistor (center) -->
+  <rect
+     x="480"
+     y="160"
+     width="120"
+     height="140"
+     class="box"
+     rx="5"
+     id="rect13" />
+  <text
+     x="500"
+     y="185"
+     class="label"
+     id="text14">2N2222</text>
+  <text
+     x="500"
+     y="205"
+     class="text"
+     id="text15">(NPN)</text>
+  <text
+     x="500"
+     y="230"
+     class="text"
+     id="text16">B (base)</text>
+  <text
+     x="500"
+     y="255"
+     class="text"
+     id="text17">C (collector)</text>
+  <text
+     x="500"
+     y="280"
+     class="text"
+     id="text18">E (emitter)</text>
+  <!-- Transistor pins (right side of transistor) -->
+  <circle
+     cx="481.0098"
+     cy="221.93324"
+     r="6"
+     class="pin"
+     id="circle18" />
+  <circle
+     cx="481.0098"
+     cy="249.38664"
+     r="6"
+     class="pin"
+     id="circle19" />
+  <circle
+     cx="600"
+     cy="275"
+     r="6"
+     class="pin"
+     id="circle20" />
+  <!-- Base pulldown resistor (below transistor) -->
+  <rect
+     x="393.03622"
+     y="321.22672"
+     width="80"
+     height="25"
+     class="box"
+     rx="3"
+     id="rect20" />
+  <text
+     x="409.44931"
+     y="339.38666"
+     class="text"
+     id="text20">100kΩ</text>
+  <!-- TACH pull-up resistor (bottom center) -->
+  <rect
+     x="350"
+     y="520"
+     width="80"
+     height="25"
+     class="box"
+     rx="3"
+     id="rect21" />
+  <text
+     x="375"
+     y="540"
+     class="text"
+     id="text21">10kΩ</text>
+  <!-- 3.3V supply (bottom center) -->
+  <circle
+     cx="390"
+     cy="480"
+     r="8"
+     fill="#3498db"
+     stroke="#000"
+     stroke-width="2"
+     id="circle21" />
+  <text
+     x="410"
+     y="488"
+     class="text"
+     id="text22">3.3V</text>
+  <!-- GND rail (bottom) -->
+  <line
+     x1="100"
+     y1="400"
+     x2="700"
+     y2="400"
+     class="thick-wire"
+     id="line22" />
+  <text
+     x="350"
+     y="420"
+     class="text"
+     id="text23">GND (common rail)</text>
+  <!-- Connections without crossings -->
+  <!-- Power: 12V to fan V+ -->
+  <line
+     x1="257.86865"
+     y1="109.13259"
+     x2="257.86865"
+     y2="184.13258"
+     class="thick-wire"
+     id="line23" />
+  <line
+     x1="231.41264"
+     y1="185"
+     x2="259.49194"
+     y2="185"
+     class="thick-wire"
+     id="line24" />
+  <!-- Fan GND to GND rail -->
+  <line
+     x1="230"
+     y1="210"
+     x2="250"
+     y2="210"
+     class="thick-wire"
+     id="line25" />
+  <line
+     x1="250"
+     y1="210"
+     x2="250"
+     y2="400"
+     class="thick-wire"
+     id="line26" />
+  <!-- ESP GPIO5 to base resistor -->
+  <line
+     x1="391.22678"
+     y1="85"
+     x2="391.22678"
+     y2="120"
+     class="wire"
+     id="line27" />
+  <!-- Base resistor to transistor base -->
+  <line
+     x1="390"
+     y1="145"
+     x2="390"
+     y2="225"
+     class="wire"
+     id="line28" />
+  <line
+     x1="390"
+     y1="225"
+     x2="480"
+     y2="225"
+     class="wire"
+     id="line29" />
+  <!-- Fan PWM to transistor collector -->
+  <line
+     x1="235"
+     y1="258.42007"
+     x2="300"
+     y2="258.42007"
+     class="wire"
+     id="line30" />
+  <line
+     x1="300"
+     y1="259.15073"
+     x2="300"
+     y2="248.92664"
+     class="wire"
+     id="line31" />
+  <line
+     x1="300"
+     y1="250"
+     x2="480"
+     y2="250"
+     class="wire"
+     id="line32" />
+  <!-- Transistor emitter to GND -->
+  <line
+     x1="600"
+     y1="275"
+     x2="650"
+     y2="275"
+     class="wire"
+     id="line33" />
+  <line
+     x1="650"
+     y1="275"
+     x2="650"
+     y2="400"
+     class="wire"
+     id="line34" />
+  <!-- Base pulldown -->
+  <line
+     x1="433.03622"
+     y1="225.61336"
+     x2="433.03622"
+     y2="320.61334"
+     class="wire"
+     id="line35" />
+  <line
+     x1="434.26291"
+     y1="345.61334"
+     x2="434.26291"
+     y2="400.61334"
+     class="wire"
+     id="line36" />
+  <!-- TACH connections -->
+  <line
+     x1="235"
+     y1="235.27881"
+     x2="270"
+     y2="235.27881"
+     class="wire"
+     id="line37" />
+  <line
+     x1="270"
+     y1="235.27881"
+     x2="270"
+     y2="533.38525"
+     class="wire"
+     id="line38" />
+  <line
+     x1="270"
+     y1="532.77191"
+     x2="350"
+     y2="532.77191"
+     class="wire"
+     id="line39" />
+  <!-- TACH pull-up to 3.3V -->
+  <line
+     x1="390"
+     y1="520"
+     x2="390"
+     y2="488"
+     class="wire"
+     id="line40" />
+  <!-- TACH to ESP GPIO32 -->
+  <line
+     x1="430"
+     y1="532"
+     x2="500"
+     y2="532"
+     class="wire"
+     id="line41" />
+  <!-- Notes box (right side) -->
+</svg>
