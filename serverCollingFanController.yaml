@@ -8,7 +8,7 @@ substitutions:
 esphome:
   name: server-colling-fan
   friendly_name: "Server Cooling Fan"
-  comment: "WT32-ETH01 fan controller with temperature sensor"
+  comment: "WT32-ETH01 fan controller with temperature sensors"
   name_add_mac_suffix: true
   project:
     name: "DoYouHost.ServerCoolingFanController"
