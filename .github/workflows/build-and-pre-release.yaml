@@ -103,7 +103,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ steps.version.outputs.tag }}
-        name: "Server Cooling Fan Controller ${{ steps.version.outputs.version }}"
+        name: ${{ steps.version.outputs.version }}
         token: ${{ secrets.GITHUB_TOKEN }}
         body: |
           ## ESPHome Firmware Pre-Release
@@ -137,3 +137,28 @@ jobs:
       - create-prerelease
     with:
       version: ${{ needs.create-prerelease.outputs.version }}
+
+  cleanup-on-failure:
+    name: Cleanup Release and Tag on Build Failure
+    runs-on: ubuntu-latest
+    needs: [create-prerelease, build-firmware]
+    if: always() && needs.create-prerelease.result == 'success' && needs.build-firmware.result == 'failure'
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v4
+
+    - name: Delete failed release and tag
+      run: |
+        TAG="${{ needs.create-prerelease.outputs.tag }}"
+        echo "Build failed, cleaning up release and tag: $TAG"
+        
+        # Delete the GitHub release
+        gh release delete "$TAG" --yes --cleanup-tag || echo "Release deletion failed or already deleted"
+        
+        # Delete the Git tag (both locally and remotely)
+        git tag -d "$TAG" 2>/dev/null || echo "Local tag not found"
+        git push --delete origin "$TAG" 2>/dev/null || echo "Remote tag deletion failed or already deleted"
+        
+        echo "✅ Cleanup completed for failed build $TAG"
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
