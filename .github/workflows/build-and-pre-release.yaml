@@ -109,6 +109,9 @@ jobs:
         serverCollingFanController.yaml
       esphome-version: "2025.7.5"
       combined-name: "ServerCoolingFanController"
+      release-version: ${{ needs.generate-version.outputs.version }}
+      release-summary: "Server Cooling Fan Controller v${{ needs.generate-version.outputs.version }} - Dual PWM outputs, temperature monitoring, RPM detection, OLED display, and runtime tracking"
+      release-url: "https://github.com/DoYouHost/ServerCollingFanController/releases/tag/${{ needs.generate-version.outputs.tag }}"
 
   upload-to-prerelease:
     name: Upload to Pre-Release
@@ -117,4 +120,4 @@ jobs:
       - build-firmware
       - generate-version
     with:
-      version: ${{ needs.generate-version.outputs.tag }}
+      version: ${{ needs.generate-version.outputs.version }}
