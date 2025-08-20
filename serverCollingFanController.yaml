@@ -1,3 +1,4 @@
+---
 substitutions:
   API_KEY: "Zeikx9TPIaEuYCmaC4EgAf93MsP946vpPf0hzGjFdM0="
   OTA_PASSWORD: "dZDYhrmYcxn_M7ih0@_W9r5jbbkaD4gk"
@@ -94,28 +95,29 @@ interval:
           // Cabinet fan
           bool cabinet_running = id(cabinet_fan).state;
           id(cabinet_fan_commanded) = cabinet_running;
-          
+
           if (cabinet_running) {
             // Increment runtime hours (5 seconds = 5/3600 hours)
             id(cabinet_fan_runtime_hours) += (5.0 / 3600.0);
-            
-            if (id(cabinet_fan_tach).state == 0 || id(cabinet_fan2_tach).state == 0) {
+
+            if (id(cabinet_fan_tach).state == 0 ||
+                id(cabinet_fan2_tach).state == 0) {
               id(cabinet_fan_error_count) += 1;
             } else {
-              id(cabinet_fan_error_count) = 0; // Reset counter if fans are working
+              id(cabinet_fan_error_count) = 0; // Reset counter if working
             }
           } else {
             id(cabinet_fan_error_count) = 0; // Reset when fan is off
           }
-          
-          // Rack fan  
+
+          // Rack fan
           bool rack_running = id(rack_fan).state;
           id(rack_fan_commanded) = rack_running;
-          
+
           if (rack_running) {
             // Increment runtime hours (5 seconds = 5/3600 hours)
             id(rack_fan_runtime_hours) += (5.0 / 3600.0);
-            
+
             if (id(rack_fan_tach).state == 0 || id(rack_fan2_tach).state == 0) {
               id(rack_fan_error_count) += 1;
             } else {
@@ -131,7 +133,7 @@ text_sensor:
     entity_category: "diagnostic"
 
   - platform: ethernet_info
-    ip_address:      
+    ip_address:
       entity_category: "diagnostic"
       name: IP Address
     dns_address:
@@ -147,31 +149,37 @@ text_sensor:
     lambda: |-
       std::string error_msg = "No errors";
       bool has_error = false;
-      
+
       // Cabinet fans
-      if (id(cabinet_fan_commanded) && id(cabinet_fan_error_count) >= $ERROR_COUNT_TRIGGER) {
+      if (id(cabinet_fan_commanded) &&
+          id(cabinet_fan_error_count) >= $ERROR_COUNT_TRIGGER) {
         if (id(cabinet_fan_tach).state == 0) {
-          error_msg = has_error ? error_msg + ", Cabinet Fan 1 not responding" : "Cabinet Fan 1 not responding";
+          error_msg = has_error ? error_msg + ", Cabinet Fan 1 not responding" :
+                      "Cabinet Fan 1 not responding";
           has_error = true;
         }
         if (id(cabinet_fan2_tach).state == 0) {
-          error_msg = has_error ? error_msg + ", Cabinet Fan 2 not responding" : "Cabinet Fan 2 not responding";
+          error_msg = has_error ? error_msg + ", Cabinet Fan 2 not responding" :
+                      "Cabinet Fan 2 not responding";
           has_error = true;
         }
       }
-      
+
       // Rack fans
-      if (id(rack_fan_commanded) && id(rack_fan_error_count) >= $ERROR_COUNT_TRIGGER) {
+      if (id(rack_fan_commanded) &&
+          id(rack_fan_error_count) >= $ERROR_COUNT_TRIGGER) {
         if (id(rack_fan_tach).state == 0) {
-          error_msg = has_error ? error_msg + ", Rack Fan 1 not responding" : "Rack Fan 1 not responding";
+          error_msg = has_error ? error_msg + ", Rack Fan 1 not responding" :
+                      "Rack Fan 1 not responding";
           has_error = true;
         }
         if (id(rack_fan2_tach).state == 0) {
-          error_msg = has_error ? error_msg + ", Rack Fan 2 not responding" : "Rack Fan 2 not responding";
+          error_msg = has_error ? error_msg + ", Rack Fan 2 not responding" :
+                      "Rack Fan 2 not responding";
           has_error = true;
         }
       }
-      
+
       return error_msg;
     update_interval: 5s
 
@@ -210,7 +218,8 @@ binary_sensor:
     name: "Fan Error"
     device_class: problem
     lambda: |-
-      return (id(cabinet_fan_error_count) >= $ERROR_COUNT_TRIGGER) || (id(rack_fan_error_count) >= $ERROR_COUNT_TRIGGER);
+      return (id(cabinet_fan_error_count) >= $ERROR_COUNT_TRIGGER) ||
+             (id(rack_fan_error_count) >= $ERROR_COUNT_TRIGGER);
     on_state:
       then:
         - lambda: |-
@@ -228,7 +237,7 @@ sensor:
     accuracy_decimals: 0
     icon: mdi:clock-outline
     entity_category: "diagnostic"
-  
+
   - platform: debug
     loop_time:
       name: "Loop Time"
@@ -237,11 +246,11 @@ sensor:
       unit_of_measurement: "MHz"
       filters:
         - multiply: 0.000001
-  
+
   - platform: internal_temperature
     id: internal_temp
     name: "Internal Temperature"
-    update_interval: 60s  
+    update_interval: 60s
 
   - platform: dallas_temp
     id: cabinet_temp
@@ -337,7 +346,7 @@ button:
   - platform: restart
     id: restart_button
     name: Restart
-  
+
   - platform: safe_mode
     id: safe_mode_button
     name: Safe Mode
@@ -380,7 +389,7 @@ fan:
     id: cabinet_fan
     output: cabinet_fan_output
     name: "Cabinet Fan"
-    restore_mode: RESTORE_DEFAULT_OFF 
+    restore_mode: RESTORE_DEFAULT_OFF
     speed_count: 4
 
   - platform: speed
@@ -404,31 +413,33 @@ display:
           it.printf(0, 10, id(font2), "%.0f RPM", id(cabinet_fan_tach).state);
           it.printf(0, 20, id(font2), "%.0f RPM", id(cabinet_fan2_tach).state);
           it.printf(0, 30, id(font2), "%.1f°C", id(cabinet_temp).state);
-          
-          // Rack Section  
+
+          // Rack Section
           it.print(64, 0, id(font2), "Rack:");
           it.printf(64, 10, id(font2), "%.0f RPM", id(rack_fan_tach).state);
           it.printf(64, 20, id(font2), "%.0f RPM", id(rack_fan2_tach).state);
           it.printf(64, 30, id(font2), "%.1f°C", id(rack_temp).state);
-          
+
           // System info
           it.line(0, 42, 128, 42);
-          it.printf(0, 46, id(font2), "CPU: %.1f°C", id(internal_temp).state);
-          
+          it.printf(0, 46, id(font2), "CPU: %.1f°C",
+                    id(internal_temp).state);
+
       - id: error_page
         lambda: |-
           it.print(0, 0, id(font1), "FAN ERROR!");
           it.line(0, 12, 128, 12);
-          
+
           // Temperature status
-          it.printf(0, 16, id(font2), "Cabinet: %.1f°C", id(cabinet_temp).state);
+          it.printf(0, 16, id(font2), "Cabinet: %.1f°C",
+                    id(cabinet_temp).state);
           it.printf(0, 26, id(font2), "Rack: %.1f°C", id(rack_temp).state);
           it.printf(0, 36, id(font2), "CPU: %.1f°C", id(internal_temp).state);
-          
+
           // Error details
           it.line(0, 44, 128, 44);
           int error_line = 48;
-          
+
           if (id(cabinet_fan_commanded) && id(cabinet_fan_error_count) >= 6) {
             if (id(cabinet_fan_tach).state == 0) {
               it.print(0, error_line, id(font2), "Cabinet Fan 1 FAIL");
@@ -439,7 +450,7 @@ display:
               error_line += 8;
             }
           }
-          
+
           if (id(rack_fan_commanded) && id(rack_fan_error_count) >= 6) {
             if (id(rack_fan_tach).state == 0) {
               it.print(0, error_line, id(font2), "Rack Fan 1 FAIL");

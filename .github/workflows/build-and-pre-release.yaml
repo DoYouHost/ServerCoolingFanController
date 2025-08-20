@@ -19,43 +19,43 @@ jobs:
     outputs:
       should-build: ${{ steps.check.outputs.should-build }}
     steps:
-    - name: Check commit message or PR title
-      id: check
-      run: |
-        SHOULD_BUILD="false"
-        
-        # Check commit message for push events
-        if [ "${{ github.event_name }}" = "push" ]; then
-          COMMIT_MESSAGE="${{ github.event.head_commit.message }}"
-          echo "Commit message: $COMMIT_MESSAGE"
-          if [[ "$COMMIT_MESSAGE" =~ ^BUILD.* ]]; then
-            SHOULD_BUILD="true"
-            echo "✅ Commit message starts with BUILD"
-          else
-            echo "❌ Commit message does not start with BUILD"
+      - name: Check commit message or PR title
+        id: check
+        run: |
+          SHOULD_BUILD="false"
+
+          # Check commit message for push events
+          if [ "${{ github.event_name }}" = "push" ]; then
+            COMMIT_MESSAGE="${{ github.event.head_commit.message }}"
+            echo "Commit message: $COMMIT_MESSAGE"
+            if [[ "$COMMIT_MESSAGE" =~ ^BUILD.* ]]; then
+              SHOULD_BUILD="true"
+              echo "✅ Commit message starts with BUILD"
+            else
+              echo "❌ Commit message does not start with BUILD"
+            fi
           fi
-        fi
-        
-        # Check PR title for pull request events
-        if [ "${{ github.event_name }}" = "pull_request" ]; then
-          PR_TITLE="${{ github.event.pull_request.title }}"
-          echo "PR title: $PR_TITLE"
-          if [[ "$PR_TITLE" =~ ^BUILD.* ]]; then
-            SHOULD_BUILD="true"
-            echo "✅ PR title starts with BUILD"
-          else
-            echo "❌ PR title does not start with BUILD"
+
+          # Check PR title for pull request events
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            PR_TITLE="${{ github.event.pull_request.title }}"
+            echo "PR title: $PR_TITLE"
+            if [[ "$PR_TITLE" =~ ^BUILD.* ]]; then
+              SHOULD_BUILD="true"
+              echo "✅ PR title starts with BUILD"
+            else
+              echo "❌ PR title does not start with BUILD"
+            fi
           fi
-        fi
-        
-        # Always build on manual trigger
-        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-          SHOULD_BUILD="true"
-          echo "✅ Manual workflow trigger - building"
-        fi
-        
-        echo "should-build=$SHOULD_BUILD" >> $GITHUB_OUTPUT
-        echo "Final decision: should-build=$SHOULD_BUILD"
+
+          # Always build on manual trigger
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            SHOULD_BUILD="true"
+            echo "✅ Manual workflow trigger - building"
+          fi
+
+          echo "should-build=$SHOULD_BUILD" >> $GITHUB_OUTPUT
+          echo "Final decision: should-build=$SHOULD_BUILD"
 
   generate-version:
     runs-on: ubuntu-latest
@@ -65,41 +65,41 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
-    
-    steps:
-    - name: Checkout source code
-      uses: actions/checkout@v5
 
-    - name: Extract project version and generate incremental version
-      id: version
-      run: |
-        # Extract project.version
-        BASE_VERSION=$(grep -A 2 "project:" serverCollingFanController.yaml | grep "version:" | sed 's/.*version: "\(.*\)".*/\1/')
-        echo "Base project version: $BASE_VERSION"
-                
-        # Fetch tags
-        git fetch --tags || true
-        
-        LATEST_TAG=$(git tag -l "$BASE_VERSION.*" | sort -V | tail -1 || echo "")
-        
-        LATEST_VERSION="$LATEST_TAG"
-        
-        if [ -z "$LATEST_VERSION" ]; then
-          INCREMENTAL_VERSION="${BASE_VERSION}.0"
-        else
-          CURRENT_INCREMENT=$(echo "$LATEST_VERSION" | sed "s/${BASE_VERSION}\.//")
-          NEXT_INCREMENT=$((CURRENT_INCREMENT + 1))
-          INCREMENTAL_VERSION="${BASE_VERSION}.${NEXT_INCREMENT}"
-        fi
-        
-        TAG="$INCREMENTAL_VERSION"
-        echo "version=$INCREMENTAL_VERSION" >> $GITHUB_OUTPUT
-        echo "tag=$TAG" >> $GITHUB_OUTPUT
-        echo "Base version: $BASE_VERSION"
-        echo "Full version: $INCREMENTAL_VERSION"
-        echo "Release tag: $TAG"
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v5
+
+      - name: Extract project version and generate incremental version
+        id: version
+        run: |
+          # Extract project.version
+          BASE_VERSION=$(grep -A 2 "project:" serverCollingFanController.yaml | grep "version:" | sed 's/.*version: "\(.*\)".*/\1/')
+          echo "Base project version: $BASE_VERSION"
+
+          # Fetch tags
+          git fetch --tags || true
+
+          LATEST_TAG=$(git tag -l "$BASE_VERSION.*" | sort -V | tail -1 || echo "")
+
+          LATEST_VERSION="$LATEST_TAG"
+
+          if [ -z "$LATEST_VERSION" ]; then
+            INCREMENTAL_VERSION="${BASE_VERSION}.0"
+          else
+            CURRENT_INCREMENT=$(echo "$LATEST_VERSION" | sed "s/${BASE_VERSION}\.//")
+            NEXT_INCREMENT=$((CURRENT_INCREMENT + 1))
+            INCREMENTAL_VERSION="${BASE_VERSION}.${NEXT_INCREMENT}"
+          fi
+
+          TAG="$INCREMENTAL_VERSION"
+          echo "version=$INCREMENTAL_VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Base version: $BASE_VERSION"
+          echo "Full version: $INCREMENTAL_VERSION"
+          echo "Release tag: $TAG"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-firmware:
     name: Build Firmware
@@ -115,16 +115,6 @@ jobs:
       release-summary: ${{ needs.generate-version.outputs.version }}
       release-url: "https://github.com/DoYouHost/ServerCollingFanController/releases/tag/${{ needs.generate-version.outputs.tag }}"
 
-  upload-to-r2:
-    name: Upload to R2
-    uses: DoYouHost/workflows/.github/workflows/upload-to-r2.yml@main
-    needs:
-      - build-firmware
-      - generate-version
-    with:
-      directory: serverCollingFanController
-    secrets: inherit
-
   upload-to-pre-release:
     name: Upload to Pre-Release
     uses: DoYouHost/workflows/.github/workflows/upload-to-gh-release.yml@main
@@ -134,6 +124,16 @@ jobs:
     with:
       version: ${{ needs.generate-version.outputs.version }}
       prerelease: true
+
+  upload-to-r2:
+    name: Upload to R2
+    uses: DoYouHost/workflows/.github/workflows/upload-to-r2.yml@main
+    needs:
+      - build-firmware
+      - generate-version
+    with:
+      directory: serverCollingFanController
+    secrets: inherit
 
   promote-to-beta:
     name: Promote to Beta

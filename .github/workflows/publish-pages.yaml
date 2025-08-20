@@ -15,7 +15,7 @@ on:
       - '.github/workflows/publish-pages.yaml'
   workflow_dispatch:
   workflow_run:
-    workflows: 
+    workflows:
       - "Build and Pre-release"
     types:
       - completed
