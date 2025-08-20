@@ -17,14 +17,6 @@ repos:
 
   - repo: local
     hooks:
-      - id: commit-msg-check
-        name: Check commit message starts with BUILD
-        entry: bash -c 'if [[ ! "$(git log --format=%B -n 1 HEAD)" =~ ^BUILD.* ]]; then echo "❌ Commit message must start with BUILD"; exit 1; fi'
-        language: system
-        stages: [pre-commit]
-        always_run: true
-        pass_filenames: false
-
       - id: esphome-check
         name: ESPHome config validation
         entry: bash -c 'if [ -f ".venv/Scripts/esphome.exe" ]; then echo "🔍 Validating ESPHome config..."; .venv/Scripts/esphome.exe config serverCollingFanController.yaml; elif [ -f ".venv/bin/esphome" ]; then echo "🔍 Validating ESPHome config..."; .venv/bin/esphome config serverCollingFanController.yaml; else echo "⚠️ ESPHome not found in venv, skipping validation"; fi'
