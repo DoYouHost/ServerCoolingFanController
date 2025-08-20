@@ -124,6 +124,7 @@ jobs:
     with:
       version: ${{ needs.generate-version.outputs.version }}
       prerelease: true
+    secrets: inherit
 
   upload-to-r2:
     name: Upload to R2
