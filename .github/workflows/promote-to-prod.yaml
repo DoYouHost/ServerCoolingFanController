@@ -2,7 +2,7 @@ name: Promote to Production
 
 on:
   release:
-    types: [released]
+    types: [released, edited]
 
 permissions:
   contents: read
@@ -22,9 +22,13 @@ jobs:
           SHOULD_PROMOTE="false"
           VERSION="${{ github.event.release.tag_name }}"
           
+          echo "=== DEBUG INFO ==="
+          echo "Event action: ${{ github.event.action }}"
           echo "Release tag: $VERSION"
           echo "Release draft: ${{ github.event.release.draft }}"
           echo "Release prerelease: ${{ github.event.release.prerelease }}"
+          echo "Release published_at: ${{ github.event.release.published_at }}"
+          echo "=================="
           
           # Only promote if it's not a draft and not a prerelease
           if [ "${{ github.event.release.draft }}" = "false" ] && [ "${{ github.event.release.prerelease }}" = "false" ]; then
