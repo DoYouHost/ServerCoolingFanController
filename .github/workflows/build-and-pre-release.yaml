@@ -115,11 +115,12 @@ jobs:
       release-summary: ${{ needs.generate-version.outputs.version }}
       release-url: "https://github.com/DoYouHost/ServerCollingFanController/releases/tag/${{ needs.generate-version.outputs.tag }}"
 
-  upload-to-prerelease:
+  upload-to-pre-release:
     name: Upload to Pre-Release
-    uses: DoYouHost/workflows/.github/workflows/upload-to-gh-prerelease.yml@main
+    uses: DoYouHost/workflows/.github/workflows/upload-to-gh-release.yml@main
     needs:
       - build-firmware
       - generate-version
     with:
       version: ${{ needs.generate-version.outputs.version }}
+      prerelease: true
