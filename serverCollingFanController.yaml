@@ -234,6 +234,9 @@ sensor:
       name: "Loop Time"
     cpu_frequency:
       name: "CPU Frequency"
+      unit_of_measurement: "MHz"
+      filters:
+        - multiply: 0.000001
   
   - platform: internal_temperature
     id: internal_temp
@@ -354,6 +357,8 @@ button:
             id(cabinet_fan_runtime_hours) = 0.0;
             id(rack_fan_runtime_hours) = 0.0;
         - logger.log: "Fan runtime counter reset to 0 hours"
+        - component.update: cabinet_fan_runtime_sensor
+        - component.update: rack_fan_runtime_sensor
 
 output:
   - platform: ledc

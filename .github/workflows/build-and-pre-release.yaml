@@ -115,6 +115,16 @@ jobs:
       release-summary: ${{ needs.generate-version.outputs.version }}
       release-url: "https://github.com/DoYouHost/ServerCollingFanController/releases/tag/${{ needs.generate-version.outputs.tag }}"
 
+  upload-to-r2:
+    name: Upload to R2
+    uses: DoYouHost/workflows/.github/workflows/upload-to-r2.yml@main
+    needs:
+      - build-firmware
+      - generate-version
+    with:
+      directory: serverCollingFanController
+    secrets: inherit
+
   upload-to-pre-release:
     name: Upload to Pre-Release
     uses: DoYouHost/workflows/.github/workflows/upload-to-gh-release.yml@main
@@ -124,3 +134,17 @@ jobs:
     with:
       version: ${{ needs.generate-version.outputs.version }}
       prerelease: true
+
+  promote-to-beta:
+    name: Promote to Beta
+    uses: DoYouHost/workflows/.github/workflows/promote-r2.yml@main
+    needs:
+      - build-firmware
+      - generate-version
+      - upload-to-r2
+    with:
+      version: ${{ needs.generate-version.outputs.version }}
+      directory: serverCollingFanController
+      channel: beta
+      manifest-filename: manifest-beta.json
+    secrets: inherit
