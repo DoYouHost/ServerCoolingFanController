@@ -80,26 +80,19 @@ jobs:
         # Fetch tags
         git fetch --tags || true
         
-        # Get tag matching pattern
-        LATEST_TAG=$(git tag -l "v$BASE_VERSION.*" | sort -V | tail -1 || echo "")
-        
-        # Debug
-        LATEST_RELEASE=$(gh release list --limit 50 --include-drafts --json tagName,name,isPrerelease | jq -r --arg base "v$BASE_VERSION." '.[] | select(.tagName | startswith($base)) | .tagName' | head -1 2>/dev/null || echo "")
-        
-        echo "Latest release found: '$LATEST_RELEASE'"
-        echo "Latest tag found: '$LATEST_TAG'"
+        LATEST_TAG=$(git tag -l "$BASE_VERSION.*" | sort -V | tail -1 || echo "")
         
         LATEST_VERSION="$LATEST_TAG"
         
         if [ -z "$LATEST_VERSION" ]; then
           INCREMENTAL_VERSION="${BASE_VERSION}.0"
         else
-          CURRENT_INCREMENT=$(echo "$LATEST_VERSION" | sed "s/v${BASE_VERSION}\.//")
+          CURRENT_INCREMENT=$(echo "$LATEST_VERSION" | sed "s/${BASE_VERSION}\.//")
           NEXT_INCREMENT=$((CURRENT_INCREMENT + 1))
           INCREMENTAL_VERSION="${BASE_VERSION}.${NEXT_INCREMENT}"
         fi
         
-        TAG="v${INCREMENTAL_VERSION}"
+        TAG="$INCREMENTAL_VERSION"
         echo "version=$INCREMENTAL_VERSION" >> $GITHUB_OUTPUT
         echo "tag=$TAG" >> $GITHUB_OUTPUT
         echo "Base version: $BASE_VERSION"
