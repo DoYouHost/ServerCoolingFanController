@@ -115,16 +115,6 @@ jobs:
       release-summary: ${{ needs.generate-version.outputs.version }}
       release-url: "https://github.com/DoYouHost/ServerCollingFanController/releases/tag/${{ needs.generate-version.outputs.tag }}"
 
-  debug-version:
-    name: Debug Version
-    needs: [generate-version]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Debug version values
-        run: |
-          echo "Generated version: ${{ needs.generate-version.outputs.version }}"
-          echo "Generated tag: ${{ needs.generate-version.outputs.tag }}"
-
   upload-to-pre-release:
     name: Upload to Pre-Release
     uses: DoYouHost/workflows/.github/workflows/upload-to-gh-release.yml@main
