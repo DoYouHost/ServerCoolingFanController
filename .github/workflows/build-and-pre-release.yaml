@@ -73,7 +73,7 @@ jobs:
       - name: Extract project version and generate incremental version
         id: version
         run: |
-          # Extract project.version - improved regex to handle quotes properly
+          # Extract project.version
           BASE_VERSION=$(grep -A 3 "project:" serverCollingFanController.yaml | grep "version:" | sed 's/.*version:[[:space:]]*"\([^"]*\)".*/\1/')
           echo "Base project version: $BASE_VERSION"
 

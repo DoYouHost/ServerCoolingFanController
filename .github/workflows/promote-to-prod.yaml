@@ -1,0 +1,56 @@
+name: Promote to Production
+
+on:
+  release:
+    types: [released]
+
+permissions:
+  contents: read
+
+jobs:
+  check-release:
+    name: Check Release
+    runs-on: ubuntu-latest
+    outputs:
+      should-promote: ${{ steps.check.outputs.should-promote }}
+      version: ${{ steps.check.outputs.version }}
+    steps:
+
+      - name: Check if release should be promoted
+        id: check
+        run: |
+          SHOULD_PROMOTE="false"
+          VERSION="${{ github.event.release.tag_name }}"
+          
+          echo "Release tag: $VERSION"
+          echo "Release draft: ${{ github.event.release.draft }}"
+          echo "Release prerelease: ${{ github.event.release.prerelease }}"
+          
+          # Only promote if it's not a draft and not a prerelease
+          if [ "${{ github.event.release.draft }}" = "false" ] && [ "${{ github.event.release.prerelease }}" = "false" ]; then
+            # Check if version follows semantic versioning pattern (YYYY.M.P)
+            if [[ "$VERSION" =~ ^[0-9]{4}\.[0-9]+\.[0-9]+$ ]]; then 
+              SHOULD_PROMOTE="true"
+              echo "✅ Release $VERSION follows semantic versioning and should be promoted to production"
+            else
+              echo "❌ Version $VERSION does not follow expected semantic versioning pattern (YYYY.M.P)"
+              echo "Expected format: year.major.patch (e.g., 2025.1.5)"
+            fi
+          else
+            echo "❌ Release is draft or prerelease, skipping promotion"
+          fi
+          
+          echo "should-promote=$SHOULD_PROMOTE" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+  promote-to-production:
+    name: Promote to Production
+    needs: check-release
+    if: needs.check-release.outputs.should-promote == 'true'
+    uses: DoYouHost/workflows/.github/workflows/promote-r2.yml@main
+    with:
+      version: ${{ needs.check-release.outputs.version }}
+      directory: serverCollingFanController
+      channel: production
+      manifest-filename: manifest.json
+    secrets: inherit
