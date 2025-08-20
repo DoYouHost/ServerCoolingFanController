@@ -73,8 +73,8 @@ jobs:
       - name: Extract project version and generate incremental version
         id: version
         run: |
-          # Extract project.version
-          BASE_VERSION=$(grep -A 2 "project:" serverCollingFanController.yaml | grep "version:" | sed 's/.*version: "\(.*\)".*/\1/')
+          # Extract project.version - improved regex to handle quotes properly
+          BASE_VERSION=$(grep -A 3 "project:" serverCollingFanController.yaml | grep "version:" | sed 's/.*version:[[:space:]]*"\([^"]*\)".*/\1/')
           echo "Base project version: $BASE_VERSION"
 
           # Fetch tags
@@ -105,7 +105,7 @@ jobs:
     name: Build Firmware
     needs: [check-trigger, generate-version]
     if: needs.check-trigger.outputs.should-build == 'true'
-    uses: DoYouHost/workflows/.github/workflows/build.yml@main
+    uses: DoYouHost/workflows/.github/workflows/build.yml@31fa5c1e2465c41578065502f20e36cb9e795b6d
     with:
       files: |
         serverCollingFanController.yaml
@@ -114,6 +114,16 @@ jobs:
       release-version: ${{ needs.generate-version.outputs.version }}
       release-summary: ${{ needs.generate-version.outputs.version }}
       release-url: "https://github.com/DoYouHost/ServerCollingFanController/releases/tag/${{ needs.generate-version.outputs.tag }}"
+
+  debug-version:
+    name: Debug Version
+    needs: [generate-version]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Debug version values
+        run: |
+          echo "Generated version: ${{ needs.generate-version.outputs.version }}"
+          echo "Generated tag: ${{ needs.generate-version.outputs.tag }}"
 
   upload-to-pre-release:
     name: Upload to Pre-Release
