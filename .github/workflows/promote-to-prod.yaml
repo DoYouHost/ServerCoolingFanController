@@ -2,7 +2,7 @@ name: Promote to Production
 
 on:
   release:
-    types: [published]
+    types: [published, edited, released, prereleased]
   workflow_dispatch:
     inputs:
       test_version:
@@ -27,6 +27,13 @@ jobs:
         run: |
           SHOULD_PROMOTE="false"
           
+          echo "=== COMPLETE DEBUG INFO ==="
+          echo "Event name: ${{ github.event_name }}"
+          echo "Event action: ${{ github.event.action }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "SHA: ${{ github.sha }}"
+          
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION="${{ inputs.test_version }}"
             echo "=== MANUAL TEST MODE ==="
@@ -39,6 +46,9 @@ jobs:
             echo "Release draft: ${{ github.event.release.draft }}"
             echo "Release prerelease: ${{ github.event.release.prerelease }}"
             echo "Release published_at: ${{ github.event.release.published_at }}"
+            echo "Release created_at: ${{ github.event.release.created_at }}"
+            echo "Release name: ${{ github.event.release.name }}"
+            echo "Release body: ${{ github.event.release.body }}"
           fi
           echo "=================="
           
