@@ -2,7 +2,7 @@ name: Promote to Production
 
 on:
   release:
-    types: [published, prereleased]
+    types: [published, prereleased, created, edited, deleted, released]
   workflow_dispatch:
     inputs:
       test_version:
@@ -14,9 +14,40 @@ permissions:
   contents: read
 
 jobs:
+  debug-event:
+    name: Debug Release Event
+    runs-on: ubuntu-latest
+    steps:
+      - name: Debug event information
+        run: |
+          echo "=== COMPLETE EVENT DEBUG ==="
+          echo "Event name: ${{ github.event_name }}"
+          echo "Event action: ${{ github.event.action }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "SHA: ${{ github.sha }}"
+          echo "Actor: ${{ github.actor }}"
+          
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "=== RELEASE EVENT DETAILS ==="
+            echo "Release tag: ${{ github.event.release.tag_name }}"
+            echo "Release name: ${{ github.event.release.name }}"
+            echo "Release draft: ${{ github.event.release.draft }}"
+            echo "Release prerelease: ${{ github.event.release.prerelease }}"
+            echo "Release published_at: ${{ github.event.release.published_at }}"
+            echo "Release created_at: ${{ github.event.release.created_at }}"
+            echo "Release target_commitish: ${{ github.event.release.target_commitish }}"
+          fi
+          
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "=== MANUAL DISPATCH ==="
+            echo "Test version: ${{ inputs.test_version }}"
+          fi
+
   check-release:
     name: Check Release
     runs-on: ubuntu-latest
+    needs: debug-event
     outputs:
       should-promote: ${{ steps.check.outputs.should-promote }}
       version: ${{ steps.check.outputs.version }}
