@@ -7,18 +7,15 @@ on:
     paths:
       - 'static/**'
       - '.github/workflows/publish-pages.yaml'
+  workflow_run:
+    workflows:
+      - Publish Firmware
+    types:
+      - completed
   pull_request:
-    branches:
-      - main
     paths:
       - 'static/**'
       - '.github/workflows/publish-pages.yaml'
-  workflow_dispatch:
-  workflow_run:
-    workflows:
-      - "Build and Pre-release"
-    types:
-      - completed
 
 concurrency:
   group: "pages"
