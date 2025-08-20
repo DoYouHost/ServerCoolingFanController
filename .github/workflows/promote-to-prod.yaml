@@ -2,7 +2,13 @@ name: Promote to Production
 
 on:
   release:
-    types: [released, edited]
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      test_version:
+        description: 'Test version to promote (e.g., 2025.1.5)'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -20,18 +26,36 @@ jobs:
         id: check
         run: |
           SHOULD_PROMOTE="false"
-          VERSION="${{ github.event.release.tag_name }}"
           
-          echo "=== DEBUG INFO ==="
-          echo "Event action: ${{ github.event.action }}"
-          echo "Release tag: $VERSION"
-          echo "Release draft: ${{ github.event.release.draft }}"
-          echo "Release prerelease: ${{ github.event.release.prerelease }}"
-          echo "Release published_at: ${{ github.event.release.published_at }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.test_version }}"
+            echo "=== MANUAL TEST MODE ==="
+            echo "Test version: $VERSION"
+          else
+            VERSION="${{ github.event.release.tag_name }}"
+            echo "=== RELEASE EVENT MODE ==="
+            echo "Event action: ${{ github.event.action }}"
+            echo "Release tag: $VERSION"
+            echo "Release draft: ${{ github.event.release.draft }}"
+            echo "Release prerelease: ${{ github.event.release.prerelease }}"
+            echo "Release published_at: ${{ github.event.release.published_at }}"
+          fi
           echo "=================="
           
-          # Only promote if it's not a draft and not a prerelease
-          if [ "${{ github.event.release.draft }}" = "false" ] && [ "${{ github.event.release.prerelease }}" = "false" ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            RELEASE_CONDITIONS_MET="true"
+            echo "Manual dispatch - skipping release condition checks"
+          else
+            if [ "${{ github.event.release.draft }}" = "false" ] && [ "${{ github.event.release.prerelease }}" = "false" ]; then
+              RELEASE_CONDITIONS_MET="true"
+              echo "Release conditions met - not draft and not prerelease"
+            else
+              RELEASE_CONDITIONS_MET="false"
+              echo "Release conditions not met - is draft or prerelease"
+            fi
+          fi
+          
+          if [ "$RELEASE_CONDITIONS_MET" = "true" ]; then
             # Check if version follows semantic versioning pattern (YYYY.M.P)
             if [[ "$VERSION" =~ ^[0-9]{4}\.[0-9]+\.[0-9]+$ ]]; then 
               SHOULD_PROMOTE="true"
@@ -41,7 +65,7 @@ jobs:
               echo "Expected format: year.major.patch (e.g., 2025.1.5)"
             fi
           else
-            echo "❌ Release is draft or prerelease, skipping promotion"
+            echo "❌ Release conditions not met, skipping promotion"
           fi
           
           echo "should-promote=$SHOULD_PROMOTE" >> $GITHUB_OUTPUT
