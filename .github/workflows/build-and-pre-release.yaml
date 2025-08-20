@@ -105,7 +105,7 @@ jobs:
     name: Build Firmware
     needs: [check-trigger, generate-version]
     if: needs.check-trigger.outputs.should-build == 'true'
-    uses: DoYouHost/workflows/.github/workflows/build.yml@399b8613292f559f97b0c6b95d343e2e78ef7932
+    uses: DoYouHost/workflows/.github/workflows/build.yml@main
     with:
       files: |
         serverCollingFanController.yaml
