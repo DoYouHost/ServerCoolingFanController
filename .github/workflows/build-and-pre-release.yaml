@@ -68,24 +68,33 @@ jobs:
     
     steps:
     - name: Checkout source code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Extract project version and generate incremental version
       id: version
       run: |
-        # Extract base project version from ESPHome config
+        # Extract project.version
         BASE_VERSION=$(grep -A 2 "project:" serverCollingFanController.yaml | grep "version:" | sed 's/.*version: "\(.*\)".*/\1/')
         echo "Base project version: $BASE_VERSION"
+                
+        # Fetch tags
+        git fetch --tags || true
         
-        # Get latest release with the same base version to determine next increment
-        LATEST_RELEASE=$(gh release list --limit 50 --json tagName,name | jq -r --arg base "v$BASE_VERSION." '.[] | select(.tagName | startswith($base)) | .tagName' | head -1 || echo "")
+        # Get tag matching pattern
+        LATEST_TAG=$(git tag -l "v$BASE_VERSION.*" | sort -V | tail -1 || echo "")
         
-        if [ -z "$LATEST_RELEASE" ]; then
-          # No previous releases with this base version, start with .0
+        # Debug
+        LATEST_RELEASE=$(gh release list --limit 50 --include-drafts --json tagName,name,isPrerelease | jq -r --arg base "v$BASE_VERSION." '.[] | select(.tagName | startswith($base)) | .tagName' | head -1 2>/dev/null || echo "")
+        
+        echo "Latest release found: '$LATEST_RELEASE'"
+        echo "Latest tag found: '$LATEST_TAG'"
+        
+        LATEST_VERSION="$LATEST_TAG"
+        
+        if [ -z "$LATEST_VERSION" ]; then
           INCREMENTAL_VERSION="${BASE_VERSION}.0"
         else
-          # Extract the increment number and add 1
-          CURRENT_INCREMENT=$(echo "$LATEST_RELEASE" | sed "s/v${BASE_VERSION}\.//")
+          CURRENT_INCREMENT=$(echo "$LATEST_VERSION" | sed "s/v${BASE_VERSION}\.//")
           NEXT_INCREMENT=$((CURRENT_INCREMENT + 1))
           INCREMENTAL_VERSION="${BASE_VERSION}.${NEXT_INCREMENT}"
         fi
