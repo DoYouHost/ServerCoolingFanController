@@ -73,9 +73,17 @@ jobs:
       - name: Extract project version and generate incremental version
         id: version
         run: |
-          # Extract project.version
-          BASE_VERSION=$(grep -A 3 "project:" serverCoolingFanController.yaml | grep "version:" | sed 's/.*version:[[:space:]]*"\([^\"]*\)".*/\1/')
-          echo "Base project version: $BASE_VERSION"
+          # Read base version from version.txt instead of parsing YAML
+          if [ ! -f version.txt ]; then
+            echo "version.txt not found" >&2
+            exit 1
+          fi
+          BASE_VERSION=$(sed -n '1{s/\r$//;p}' version.txt | tr -d ' ') 
+          if [ -z "$BASE_VERSION" ]; then
+            echo "version.txt is empty" >&2
+            exit 1
+          fi
+          echo "Base version (from version.txt): $BASE_VERSION"
 
           # Fetch tags
           git fetch --tags || true

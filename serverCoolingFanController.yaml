@@ -17,7 +17,7 @@ esphome:
   name_add_mac_suffix: true
   project:
     name: "DoYouHost.ServerCoolingFanController"
-    version: "2025.1"
+    version: "dev"
 
 esp32:
   board: esp32dev
