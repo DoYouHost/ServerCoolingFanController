@@ -1,8 +1,4 @@
 name: Promote to Production
-env:
-  SOURCE_FILE: serverCollingFanController.yaml
-  PROJECT_NAME: ServerCoolingFanController
-  DIR_NAME: serverCollingFanController
 
 on:
   release:
@@ -73,7 +69,7 @@ jobs:
     uses: DoYouHost/workflows/.github/workflows/promote-r2.yml@main
     with:
       version: "${{ needs.check-release.outputs.version }}"
-      directory: "${{ env.DIR_NAME }}"
+      directory: "serverCollingFanController"
       channel: "production"
       manifest-filename: "manifest.json"
     secrets: inherit
