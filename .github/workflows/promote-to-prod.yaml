@@ -69,7 +69,7 @@ jobs:
     uses: DoYouHost/workflows/.github/workflows/promote-r2.yml@main
     with:
       version: "${{ needs.check-release.outputs.version }}"
-      directory: "serverCollingFanController"
+      directory: "serverCoolingFanController"
       channel: "production"
       manifest-filename: "manifest.json"
     secrets: inherit

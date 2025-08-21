@@ -74,7 +74,7 @@ jobs:
         id: version
         run: |
           # Extract project.version
-          BASE_VERSION=$(grep -A 3 "project:" serverCollingFanController.yaml | grep "version:" | sed 's/.*version:[[:space:]]*"\([^\"]*\)".*/\1/')
+          BASE_VERSION=$(grep -A 3 "project:" serverCoolingFanController.yaml | grep "version:" | sed 's/.*version:[[:space:]]*"\([^\"]*\)".*/\1/')
           echo "Base project version: $BASE_VERSION"
 
           # Fetch tags
@@ -108,12 +108,12 @@ jobs:
     uses: DoYouHost/workflows/.github/workflows/build.yml@main
     with:
       files: |
-        serverCollingFanController.yaml
+        serverCoolingFanController.yaml
       esphome-version: "2025.8.0"
       combined-name: ServerCoolingFanController
       release-version: ${{ needs.generate-version.outputs.version }}
       release-summary: ${{ needs.generate-version.outputs.version }}
-      release-url: "https://github.com/DoYouHost/ServerCollingFanController/releases/tag/${{ needs.generate-version.outputs.tag }}"
+      release-url: "https://github.com/DoYouHost/ServerCoolingFanController/releases/tag/${{ needs.generate-version.outputs.tag }}"
 
   upload-to-pre-release:
     name: Upload to Pre-Release
@@ -134,7 +134,7 @@ jobs:
       - build-firmware
       - generate-version
     with:
-      directory: serverCollingFanController
+      directory: serverCoolingFanController
     secrets: inherit
 
   promote-to-beta:
@@ -146,7 +146,7 @@ jobs:
       - upload-to-r2
     with:
       version: ${{ needs.generate-version.outputs.version }}
-      directory: serverCollingFanController
+      directory: serverCoolingFanController
       channel: beta
       manifest-filename: manifest-beta.json
     secrets: inherit

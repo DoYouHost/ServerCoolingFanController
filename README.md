@@ -22,6 +22,6 @@ ESPHome-based server cooling fan controller using WT32-ETH01 (ESP32 with Etherne
 
 ## Files
 
-- `serverCollingFanController.yaml` - Main ESPHome configuration
+- `serverCoolingFanController.yaml` - Main ESPHome configuration
 - `docs/fan_pwm_2n2222.svg` - Hardware wiring schematic
 - `docs/GPIO_PINOUT.txt` - GPIO pin assignments

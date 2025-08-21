@@ -19,9 +19,9 @@ repos:
     hooks:
       - id: esphome-check
         name: ESPHome config validation
-        entry: bash -c 'if [ -f ".venv/Scripts/esphome.exe" ]; then echo "🔍 Validating ESPHome config..."; .venv/Scripts/esphome.exe config serverCollingFanController.yaml; elif [ -f ".venv/bin/esphome" ]; then echo "🔍 Validating ESPHome config..."; .venv/bin/esphome config serverCollingFanController.yaml; else echo "⚠️ ESPHome not found in venv, skipping validation"; fi'
+        entry: bash -c 'if [ -f ".venv/Scripts/esphome.exe" ]; then echo "🔍 Validating ESPHome config..."; .venv/Scripts/esphome.exe config serverCoolingFanController.yaml; elif [ -f ".venv/bin/esphome" ]; then echo "🔍 Validating ESPHome config..."; .venv/bin/esphome config serverCoolingFanController.yaml; else echo "⚠️ ESPHome not found in venv, skipping validation"; fi'
         language: system
-        files: 'serverCollingFanController\.ya?ml$'
+        files: 'serverCoolingFanController\.ya?ml$'
         pass_filenames: false
 
       - id: github-workflow-check
