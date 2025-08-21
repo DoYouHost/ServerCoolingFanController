@@ -1,4 +1,8 @@
 name: Publish Pages
+env:
+  SOURCE_FILE: serverCollingFanController.yaml
+  PROJECT_NAME: ServerCoolingFanController
+  DIR_NAME: serverCollingFanController
 
 on:
   workflow_dispatch:

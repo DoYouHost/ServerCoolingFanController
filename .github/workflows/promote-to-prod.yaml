@@ -1,4 +1,8 @@
 name: Promote to Production
+env:
+  SOURCE_FILE: serverCollingFanController.yaml
+  PROJECT_NAME: ServerCoolingFanController
+  DIR_NAME: serverCollingFanController
 
 on:
   release:
@@ -68,10 +72,10 @@ jobs:
     if: needs.check-release.outputs.should-promote == 'true'
     uses: DoYouHost/workflows/.github/workflows/promote-r2.yml@main
     with:
-      version: ${{ needs.check-release.outputs.version }}
-      directory: serverCollingFanController
-      channel: production
-      manifest-filename: manifest.json
+      version: "${{ needs.check-release.outputs.version }}"
+      directory: "${{ env.DIR_NAME }}"
+      channel: "production"
+      manifest-filename: "manifest.json"
     secrets: inherit
 
   trigger-publish-pages:
