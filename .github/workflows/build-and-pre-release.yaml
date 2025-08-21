@@ -1,5 +1,6 @@
 name: Build and Pre-release
 env:
+  ESPHOME_VERSION: 2025.7.5
   SOURCE_FILE: serverCollingFanController.yaml
   PROJECT_NAME: ServerCoolingFanController
   DIR_NAME: serverCollingFanController
@@ -113,7 +114,7 @@ jobs:
     with:
       files: |
         ${{ env.SOURCE_FILE }}
-      esphome-version: "2025.7.5"
+      esphome-version: "${{ env.ESPHOME_VERSION }}"
       combined-name: ${{ env.PROJECT_NAME }}
       release-version: ${{ needs.generate-version.outputs.version }}
       release-summary: ${{ needs.generate-version.outputs.version }}
