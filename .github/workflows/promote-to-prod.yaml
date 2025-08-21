@@ -2,7 +2,7 @@ name: Promote to Production
 
 on:
   release:
-    types: [published, prereleased, edited, released]
+    types: [released]
   workflow_dispatch:
     inputs:
       version:
@@ -26,10 +26,6 @@ jobs:
         run: |
           SHOULD_PROMOTE="false"
           
-          echo "=== EVENT DEBUG ==="
-          echo "Event name: ${{ github.event_name }}"
-          echo "Event action: ${{ github.event.action }}"
-          
           # Determine version based on trigger type
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION="${{ inputs.version }}"
@@ -37,11 +33,7 @@ jobs:
           else
             VERSION="${{ github.event.release.tag_name }}"
             echo "Release event - version: $VERSION"
-            echo "Release draft: ${{ github.event.release.draft }}"
-            echo "Release prerelease: ${{ github.event.release.prerelease }}"
-            echo "Release action: ${{ github.event.action }}"
           fi
-          echo "==============="
           
           # For manual dispatch, always promote if version is valid
           # For release events, check if it's not draft and not prerelease
