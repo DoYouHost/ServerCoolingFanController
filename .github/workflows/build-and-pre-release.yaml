@@ -1,6 +1,6 @@
 name: Build and Pre-release
 env:
-  ESPHOME_VERSION: 2025.7.5
+  ESPHOME_VERSION: 2025.8.0
   SOURCE_FILE: serverCollingFanController.yaml
   PROJECT_NAME: ServerCoolingFanController
   DIR_NAME: serverCollingFanController
