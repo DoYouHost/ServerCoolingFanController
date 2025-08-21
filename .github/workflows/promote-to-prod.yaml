@@ -73,3 +73,20 @@ jobs:
       channel: production
       manifest-filename: manifest.json
     secrets: inherit
+
+  trigger-publish-pages:
+    name: Trigger Publish Pages
+    needs:
+      - promote-to-production
+      - check-release
+    if: needs.check-release.outputs.should-promote == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch publish-pages (action)
+        uses: benc-uk/workflow-dispatch@v1.2.4
+        with:
+          token: ${{ secrets.DOYOUHOST_PAT }}
+          repo: ${{ github.repository }}
+          workflow: publish-pages.yaml
+          ref: main
+          inputs: '{ "version": "${{ needs.check-release.outputs.version }}", "channel": "production" }'

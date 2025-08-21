@@ -5,6 +5,10 @@ substitutions:
   DS18B20_1_ADDRESS: "0x1c0000031edd2a28"
   DS18B20_2_ADDRESS: "0x1c0000031edd2b28"
   ERROR_COUNT_TRIGGER: "6"
+  PROD_MANIFEST_URL: "https://morganmlg.com/serverCollingFanController/manifest.json"
+  BETA_MANIFEST_URL: "https://morganmlg.com/serverCollingFanController/manifest-beta.json"
+  WEB_USERNAME: "esphome"
+  WEB_PASSWORD: "esphome"
 
 esphome:
   name: server-colling-fan
@@ -73,6 +77,21 @@ ota:
   - platform: esphome
     password: "$OTA_PASSWORD"
   - platform: http_request
+
+update:
+  - platform: http_request
+    id: update_http_request
+    name: Firmware Update
+    source: $PROD_MANIFEST_URL
+
+web_server:
+  port: 80
+  version: 3
+  include_internal: true
+  local: true
+  auth:
+    username: "$WEB_USERNAME"
+    password: "$WEB_PASSWORD"
 
 one_wire:
   - platform: gpio
@@ -368,6 +387,29 @@ button:
         - logger.log: "Fan runtime counter reset to 0 hours"
         - component.update: cabinet_fan_runtime_sensor
         - component.update: rack_fan_runtime_sensor
+
+  - platform: template
+    id: check_for_updates
+    name: "Check for Updates"
+    on_press:
+      then:
+        - component.update: update_http_request
+
+switch:
+  - platform: template
+    name: Beta Firmware
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    icon: "mdi:test-tube"
+    entity_category: config
+    on_turn_on:
+      - logger.log: "OTA updates set to use Beta firmware"
+      - lambda: id(update_http_request).set_source_url("$BETA_MANIFEST_URL");
+      - component.update: update_http_request
+    on_turn_off:
+      - logger.log: "OTA updates set to use Production firmware"
+      - lambda: id(update_http_request).set_source_url("$PROD_MANIFEST_URL");
+      - component.update: update_http_request
 
 output:
   - platform: ledc

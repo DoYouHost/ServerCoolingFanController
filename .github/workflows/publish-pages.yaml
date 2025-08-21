@@ -1,21 +1,16 @@
 name: Publish Pages
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'static/**'
-      - '.github/workflows/publish-pages.yaml'
-  workflow_run:
-    workflows:
-      - Publish Firmware
-    types:
-      - completed
-  pull_request:
-    paths:
-      - 'static/**'
-      - '.github/workflows/publish-pages.yaml'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Firmware version to show on the pages (e.g., 2025.1.5)'
+        required: false
+        type: string
+      channel:
+        description: 'Channel name (beta/production) to pull firmware from'
+        required: false
+        default: 'prod'
 
 concurrency:
   group: "pages"
@@ -36,11 +31,21 @@ jobs:
           source: ./static
           destination: ./output
 
-      - name: Fetch firmware files
+      - name: Fetch firmware files (specific version)
+        if: ${{ github.event.inputs.version != '' && github.event.inputs.version != null }}
+        uses: robinraju/release-downloader@v1.12
+        with:
+          latest: false
+          tag: ${{ github.event.inputs.version }}
+          fileName: '*'
+          out-file-path: output/firmware
+
+      - name: Fetch firmware files (latest by channel)
+        if: ${{ github.event.inputs.version == '' || github.event.inputs.version == null }}
         uses: robinraju/release-downloader@v1.12
         with:
           latest: true
-          preRelease: true
+          preRelease: ${{ github.event.inputs.channel == 'beta' }}
           fileName: '*'
           out-file-path: output/firmware
 
