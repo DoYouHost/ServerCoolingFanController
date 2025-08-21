@@ -124,7 +124,8 @@ jobs:
     with:
       version: ${{ needs.generate-version.outputs.version }}
       prerelease: true
-    secrets: inherit
+    secrets:
+      PAT_TOKEN: ${{ secrets.DOYOUHOST_PAT }}
 
   upload-to-r2:
     name: Upload to R2
