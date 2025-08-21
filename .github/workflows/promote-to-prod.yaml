@@ -2,7 +2,7 @@ name: Promote to Production
 
 on:
   release:
-    types: [published, prereleased, edited]
+    types: [published, prereleased, edited, released]
   workflow_dispatch:
     inputs:
       version:
