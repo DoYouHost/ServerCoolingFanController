@@ -391,6 +391,8 @@ button:
   - platform: template
     id: check_for_updates
     name: "Check for Updates"
+    icon: mdi:update
+    entity_category: "config"
     on_press:
       then:
         - component.update: update_http_request

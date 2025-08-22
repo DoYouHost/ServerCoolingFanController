@@ -66,6 +66,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
+      summary: ${{ steps.summary.outputs.summary }}
 
     steps:
       - name: Checkout source code
@@ -110,6 +111,43 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Generate release summary from CHANGELOG
+        id: summary
+        run: |
+          set -euo pipefail
+          VERSION='${{ steps.version.outputs.version }}'
+          BASE_MAJOR_MINOR="${VERSION%.*}"   # e.g. 2025.2 from 2025.2.0
+          INCREMENT="${VERSION##*.}"        # last segment
+          MAJOR_MINOR_PATTERN="^# *${BASE_MAJOR_MINOR//./\\.}$"
+          INCREMENT_PATTERN="^## *\\.${INCREMENT}$"
+          if [ ! -f CHANGELOG.md ]; then
+            echo "summary=# $VERSION" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          awk -v mm_pat="$MAJOR_MINOR_PATTERN" -v inc_pat="$INCREMENT_PATTERN" -v ver="$VERSION" 'BEGIN{foundMM=0;foundInc=0} {
+            if ($0 ~ mm_pat){foundMM=1;next}
+            if(foundMM && $0 ~ /^#/ && $0 !~ mm_pat){exit}
+            if(foundMM && $0 ~ inc_pat){foundInc=1;next}
+            if(foundInc){
+              if($0 ~ /^## /){foundInc=0; next}
+              if($0 ~ /^#/){exit}
+              if($0 ~ /^-/){print $0}
+            }
+          }' CHANGELOG.md > /tmp/summary.txt || true
+          if [ -s /tmp/summary.txt ]; then
+            # Create formatted summary with version header and preserve list structure
+            echo "# $VERSION" > /tmp/formatted_summary.txt
+            cat /tmp/summary.txt >> /tmp/formatted_summary.txt
+            # Escape % characters and encode newlines for GitHub Actions output
+            SUMMARY=$(sed 's/%/%25/g; s/\r//g' /tmp/formatted_summary.txt | awk '{printf "%s\\n", $0}' | sed 's/\\n$//')
+            echo "Summary extracted with header:"
+            cat /tmp/formatted_summary.txt
+            echo "summary=$SUMMARY" >> $GITHUB_OUTPUT
+          else
+            echo "No matching changelog entries found for $VERSION; fallback to version header only"
+            echo "summary=# $VERSION" >> $GITHUB_OUTPUT
+          fi
+
   build-firmware:
     name: Build Firmware
     needs: [check-trigger, generate-version]
@@ -121,7 +159,7 @@ jobs:
       esphome-version: "2025.8.0"
       combined-name: ServerCoolingFanController
       release-version: ${{ needs.generate-version.outputs.version }}
-      release-summary: ${{ needs.generate-version.outputs.version }}
+      release-summary: ${{ needs.generate-version.outputs.summary }}
       release-url: "https://github.com/DoYouHost/ServerCoolingFanController/releases/tag/${{ needs.generate-version.outputs.tag }}"
       debug: true
 
