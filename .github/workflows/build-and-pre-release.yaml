@@ -165,8 +165,9 @@ jobs:
             # Create formatted summary with version header and preserve list structure
             echo "# $VERSION" > /tmp/formatted_summary.txt
             cat /tmp/summary.txt >> /tmp/formatted_summary.txt
-            # Use ESPHome standard: \r\n for newlines in JSON (like official ESPHome manifests)
-            SUMMARY=$(sed 's/%/%25/g' /tmp/formatted_summary.txt | sed ':a;N;$!ba;s/\n/\\r\\n/g')
+            # Create proper JSON with \r\n sequences (like ESPHome official manifests)
+            # Use printf to convert each line to line\r\n format, then join
+            SUMMARY=$(sed 's/%/%25/g' /tmp/formatted_summary.txt | sed '$!s/$/\\r\\n/' | tr -d '\n')
             echo "Summary extracted with header:"
             cat /tmp/formatted_summary.txt
             echo "summary=$SUMMARY" >> $GITHUB_OUTPUT
