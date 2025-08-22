@@ -122,6 +122,7 @@ jobs:
       release-version: ${{ needs.generate-version.outputs.version }}
       release-summary: ${{ needs.generate-version.outputs.version }}
       release-url: "https://github.com/DoYouHost/ServerCoolingFanController/releases/tag/${{ needs.generate-version.outputs.tag }}"
+      debug: true
 
   upload-to-pre-release:
     name: Upload to Pre-Release
