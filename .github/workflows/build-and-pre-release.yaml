@@ -118,8 +118,13 @@ jobs:
           VERSION='${{ steps.version.outputs.version }}'
           BASE_MAJOR_MINOR="${VERSION%.*}"   # e.g. 2025.2 from 2025.2.0
           INCREMENT="${VERSION##*.}"        # last segment
-          MAJOR_MINOR_PATTERN="^# *${BASE_MAJOR_MINOR//./\\.}$"
-          INCREMENT_PATTERN="^## *\\.${INCREMENT}$"
+          # Escape dots for regex - single backslash for awk
+          MAJOR_MINOR_ESCAPED="${BASE_MAJOR_MINOR//./\.}"
+          MAJOR_MINOR_PATTERN="^# *${MAJOR_MINOR_ESCAPED}$"
+          INCREMENT_PATTERN="^## *\.${INCREMENT}$"
+          echo "Searching for patterns:"
+          echo "  MAJOR_MINOR_PATTERN: $MAJOR_MINOR_PATTERN"
+          echo "  INCREMENT_PATTERN: $INCREMENT_PATTERN"
           if [ ! -f CHANGELOG.md ]; then
             echo "summary=# $VERSION" >> $GITHUB_OUTPUT
             exit 0
@@ -171,6 +176,7 @@ jobs:
       - generate-version
     with:
       version: ${{ needs.generate-version.outputs.version }}
+      description: ${{ needs.generate-version.outputs.summary }}
       prerelease: true
     secrets:
       PAT_TOKEN: ${{ secrets.DOYOUHOST_PAT }}
