@@ -165,15 +165,17 @@ jobs:
             # Create formatted summary with version header and preserve list structure
             echo "# $VERSION" > /tmp/formatted_summary.txt
             cat /tmp/summary.txt >> /tmp/formatted_summary.txt
-            # Create proper JSON with \r\n sequences using printf (like ESPHome official manifests)
-            # Escape % first, then convert each line to proper format
+            # Create proper JSON with \r\n sequences using printf to generate actual escape sequences
             SUMMARY=""
+            first_line=true
             while IFS= read -r line; do
               escaped_line=$(echo "$line" | sed 's/%/%25/g')
-              if [ -n "$SUMMARY" ]; then
-                SUMMARY="$SUMMARY\r\n$escaped_line"
-              else
+              if [ "$first_line" = true ]; then
                 SUMMARY="$escaped_line"
+                first_line=false
+              else
+                # Use printf to create actual \r\n escape sequences
+                SUMMARY="$SUMMARY$(printf '\r\n')$escaped_line"
               fi
             done < /tmp/formatted_summary.txt
             echo "Summary extracted with header:"
