@@ -165,8 +165,8 @@ jobs:
             # Create formatted summary with version header and preserve list structure
             echo "# $VERSION" > /tmp/formatted_summary.txt
             cat /tmp/summary.txt >> /tmp/formatted_summary.txt
-            # Escape % characters and encode newlines for GitHub Actions output
-            SUMMARY=$(sed 's/%/%25/g; s/\r//g' /tmp/formatted_summary.txt | awk '{printf "%s\\n", $0}' | sed 's/\\n$//')
+            # Use ESPHome standard: \r\n for newlines in JSON (like official ESPHome manifests)
+            SUMMARY=$(sed 's/%/%25/g' /tmp/formatted_summary.txt | sed ':a;N;$!ba;s/\n/\\r\\n/g')
             echo "Summary extracted with header:"
             cat /tmp/formatted_summary.txt
             echo "summary=$SUMMARY" >> $GITHUB_OUTPUT
