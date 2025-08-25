@@ -2,8 +2,8 @@
 substitutions:
   API_KEY: "Zeikx9TPIaEuYCmaC4EgAf93MsP946vpPf0hzGjFdM0="
   OTA_PASSWORD: "dZDYhrmYcxn_M7ih0@_W9r5jbbkaD4gk"
-  DS18B20_1_ADDRESS: "0x1c0000031edd2a28"
-  DS18B20_2_ADDRESS: "0x1c0000031edd2b28"
+  DS18B20_1_ADDRESS: "0x1b3c44e3817b6e28"
+  DS18B20_2_ADDRESS: "0xc63a904d1f64ff28"
   ERROR_COUNT_TRIGGER: "6"
   PROD_MANIFEST_URL: "https://morganmlg.com/serverCoolingFanController/manifest.json"
   BETA_MANIFEST_URL: "https://morganmlg.com/serverCoolingFanController/manifest-beta.json"
@@ -102,6 +102,11 @@ i2c:
   scl: GPIO15
   scan: true
   id: bus_a
+
+pcf8574:
+  - id: pcf8574_hub
+    address: 0x20
+    pcf8575: false
 
 time:
   - platform: homeassistant
@@ -244,8 +249,10 @@ binary_sensor:
         - lambda: |-
             if (x) {
               id(my_display).show_page(id(error_page));
+              id(error_led).turn_on().set_effect("Error Strobe").perform();
             } else {
               id(my_display).show_page(id(normal_page));
+              id(error_led).turn_off().perform();
             }
         - component.update: my_display
 
@@ -413,6 +420,17 @@ switch:
       - lambda: id(update_http_request).set_source_url("$PROD_MANIFEST_URL");
       - component.update: update_http_request
 
+power_supply:
+  - id: power_supply_fan
+    pin:
+      pcf8574: pcf8574_hub
+      number: 1
+      mode:
+        output: true
+      inverted: false
+    enable_time: 20ms
+    keep_on_time: 20ms
+
 output:
   - platform: ledc
     id: cabinet_fan_output
@@ -425,8 +443,18 @@ output:
     id: rack_fan_output
     pin: GPIO17
     frequency: 25000
-    min_power: 0.4
+    min_power: 0.0
     zero_means_zero: true
+    power_supply: power_supply_fan
+
+  - platform: gpio
+    id: error_led_output
+    pin:
+      pcf8574: pcf8574_hub
+      number: 2
+      mode:
+        output: true
+      inverted: false
 
 fan:
   - platform: speed
@@ -434,14 +462,31 @@ fan:
     output: cabinet_fan_output
     name: "Cabinet Fan"
     restore_mode: RESTORE_DEFAULT_OFF
-    speed_count: 4
+    speed_count: 10
 
   - platform: speed
     id: rack_fan
     output: rack_fan_output
     name: "Rack Fan"
     restore_mode: RESTORE_DEFAULT_OFF
-    speed_count: 4
+    speed_count: 10
+
+light:
+  - platform: binary
+    id: error_led
+    internal: true
+    output: error_led_output
+    restore_mode: RESTORE_DEFAULT_OFF
+    effects:
+      - strobe:
+          name: "Error Strobe"
+          colors:
+            - state: True
+              brightness: 100%
+              duration: 200ms
+            - state: False
+              brightness: 0%
+              duration: 200ms
 
 display:
   - platform: ssd1306_i2c
@@ -513,3 +558,11 @@ font:
   - file: "gfonts://Roboto"
     id: font2
     size: 8
+
+status_led:
+  pin:
+    pcf8574: pcf8574_hub
+    number: 0
+    mode:
+      output: true
+    inverted: false

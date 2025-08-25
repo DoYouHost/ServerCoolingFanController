@@ -16,3 +16,19 @@ PWM Out - │ GPIO17   GPIO14 │
           │ 5V       GPIO2  │
           │ LINK     GND    │
           └─────────────────┘
+
+
+PCF8574 Pinout
+==============
+
+            ┌────────────────────┐
+        GND │  A0            VDD │ 
+        GND │  A1            SDA │ 
+        GND │  A2            SCL │ 
+ status_led │  P0            INT │ 
+ power_supp │  P1            P7  │ 
+  error_led │  P2            P6  │ 
+            │  P3            P5  │ 
+            │ GND            P4  │ 
+            └────────────────────┘
+
