@@ -1,4 +1,6 @@
 # 2025.2
+## .6
+- Added clamp filters to fan speed sensors (fixes issue with RPM going crazy after fan is turned off and is spinning down)
 ## .5
 - Invert ERROR_LED logic
 ## .4

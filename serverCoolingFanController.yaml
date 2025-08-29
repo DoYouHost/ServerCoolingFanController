@@ -302,6 +302,10 @@ sensor:
     filters:
       - throttle_average: 3s
       - multiply: 0.5
+      - clamp:
+          min: 0
+          max: 10000
+          ignore_out_of_range: true
     timeout: 10s
     unit_of_measurement: rpm
     accuracy_decimals: 0
@@ -315,6 +319,10 @@ sensor:
     filters:
       - throttle_average: 3s
       - multiply: 0.5
+      - clamp:
+          min: 0
+          max: 10000
+          ignore_out_of_range: true
     timeout: 10s
     unit_of_measurement: rpm
     accuracy_decimals: 0
@@ -328,6 +336,10 @@ sensor:
     filters:
       - throttle_average: 3s
       - multiply: 0.5
+      - clamp:
+          min: 0
+          max: 10000
+          ignore_out_of_range: true
     timeout: 10s
     unit_of_measurement: rpm
     accuracy_decimals: 0
@@ -341,6 +353,10 @@ sensor:
     filters:
       - throttle_average: 3s
       - multiply: 0.5
+      - clamp:
+          min: 0
+          max: 10000
+          ignore_out_of_range: true
     timeout: 10s
     unit_of_measurement: rpm
     accuracy_decimals: 0
