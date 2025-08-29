@@ -98,7 +98,7 @@ one_wire:
     pin: GPIO4
 
 i2c:
-  sda: GPIO12
+  sda: GPIO14
   scl: GPIO15
   scan: true
   id: bus_a

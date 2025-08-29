@@ -1,4 +1,6 @@
 # 2025.2
+## .2
+- Fixed I2C pin assignments
 ## .1
 - PCF8574 for more GPIOs
 - Power supply for Rack Fans

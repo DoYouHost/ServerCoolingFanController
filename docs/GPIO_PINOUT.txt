@@ -9,8 +9,8 @@ WT32-ETH01 Pinout
 Tach In - │ GPIO32   GPIO39 │ - Button
 Tach In - │ GPIO33   GPIO36 │ - Tach In
 PWM Out - │ GPIO5    GPIO15 │ - I2C SCL
-PWM Out - │ GPIO17   GPIO14 │
-          │ GND      GPIO12 │ - I2C SDA
+PWM Out - │ GPIO17   GPIO14 │ - I2C SDA
+          │ GND      GPIO12 │
           │ 3V3      GPIO35 │ - Tach In
           │ GND      GPIO4  │ - OneWire
           │ 5V       GPIO2  │
