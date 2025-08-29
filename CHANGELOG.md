@@ -1,4 +1,6 @@
 # 2025.2
+## .3
+- Fan pwm frequency changed to 9765 Hz
 ## .2
 - Fixed I2C pin assignments
 ## .1

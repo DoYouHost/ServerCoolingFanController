@@ -435,14 +435,14 @@ output:
   - platform: ledc
     id: cabinet_fan_output
     pin: GPIO5
-    frequency: 25000
+    frequency: 9765
     min_power: 0.4
     zero_means_zero: true
 
   - platform: ledc
     id: rack_fan_output
     pin: GPIO17
-    frequency: 25000
+    frequency: 9765
     min_power: 0.0
     zero_means_zero: true
     power_supply: power_supply_fan
