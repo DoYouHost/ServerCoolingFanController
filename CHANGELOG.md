@@ -1,4 +1,7 @@
 # 2025.2
+## .4
+- Fan pwm frequency changed to 19531 Hz
+- Manual override button fan speed increased to 10
 ## .3
 - Fan pwm frequency changed to 9765 Hz
 ## .2

@@ -226,10 +226,10 @@ binary_sensor:
       then:
         - fan.turn_on:
             id: cabinet_fan
-            speed: 4
+            speed: 10
         - fan.turn_on:
             id: rack_fan
-            speed: 4
+            speed: 10
         - logger.log: "Manual override activated - fans at full speed"
     on_release:
       then:
@@ -435,14 +435,14 @@ output:
   - platform: ledc
     id: cabinet_fan_output
     pin: GPIO5
-    frequency: 9765
-    min_power: 0.4
+    frequency: 19531
+    min_power: 0.6
     zero_means_zero: true
 
   - platform: ledc
     id: rack_fan_output
     pin: GPIO17
-    frequency: 9765
+    frequency: 19531
     min_power: 0.0
     zero_means_zero: true
     power_supply: power_supply_fan
