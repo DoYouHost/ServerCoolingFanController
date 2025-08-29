@@ -454,7 +454,7 @@ output:
       number: 2
       mode:
         output: true
-      inverted: false
+      inverted: true
 
 fan:
   - platform: speed

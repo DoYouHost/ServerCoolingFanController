@@ -1,4 +1,6 @@
 # 2025.2
+## .5
+- Invert ERROR_LED logic
 ## .4
 - Fan pwm frequency changed to 19531 Hz
 - Manual override button fan speed increased to 10
