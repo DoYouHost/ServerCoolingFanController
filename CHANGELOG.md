@@ -1,4 +1,6 @@
 # 2025.2
+## .11
+- Added %PWM on fan speed display
 ## .10
 - Reduced throttle average to 2s
 - Reduced timeout to 5s

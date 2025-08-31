@@ -529,8 +529,8 @@ display:
 
           // Line 4: PWM percentages with label
           it.print(0, 38, id(font3), "PWM:");
-          it.printf(25, 38, id(font2), "%.0f%%", id(cabinet_fan_output).get_state() * 100);
-          it.printf(64, 38, id(font2), "%.0f%%", id(rack_fan_output).get_state() * 100);
+          it.printf(25, 38, id(font2), "%.0f%%", id(cabinet_fan).speed * 10.0);
+          it.printf(64, 38, id(font2), "%.0f%%", id(rack_fan).speed * 10.0);
 
           // Line 5: Temperatures with label
           it.print(0, 50, id(font3), "T:");
