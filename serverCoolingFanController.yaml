@@ -513,21 +513,29 @@ display:
     pages:
       - id: normal_page
         lambda: |-
-          // Line 1: Headers
-          it.print(0, 0, id(font2), "Cabinet");
-          it.print(64, 0, id(font2), "Rack");
+          // Line 1: Headers with bigger font
+          it.print(0, 0, id(font1), "C:");
+          it.print(64, 0, id(font1), "R:");
 
-          // Line 2: Fan 1 RPM
-          it.printf(0, 16, id(font2), "%.0f RPM", id(cabinet_fan_tach).state);
-          it.printf(64, 16, id(font2), "%.0f RPM", id(rack_fan_tach).state);
+          // Line 2: Fan 1 RPM with labels
+          it.print(0, 14, id(font3), "F1:");
+          it.printf(20, 14, id(font2), "%.0f", id(cabinet_fan_tach).state);
+          it.printf(64, 14, id(font2), "%.0f", id(rack_fan_tach).state);
 
-          // Line 3: Fan 2 RPM  
-          it.printf(0, 32, id(font2), "%.0f RPM", id(cabinet_fan2_tach).state);
-          it.printf(64, 32, id(font2), "%.0f RPM", id(rack_fan2_tach).state);
+          // Line 3: Fan 2 RPM with labels  
+          it.print(0, 26, id(font3), "F2:");
+          it.printf(20, 26, id(font2), "%.0f", id(cabinet_fan2_tach).state);
+          it.printf(64, 26, id(font2), "%.0f", id(rack_fan2_tach).state);
 
-          // Line 4: Temperatures
-          it.printf(0, 48, id(font2), "%.1f°C", id(cabinet_temp).state);
-          it.printf(64, 48, id(font2), "%.1f°C", id(rack_temp).state);
+          // Line 4: PWM percentages with label
+          it.print(0, 38, id(font3), "PWM:");
+          it.printf(25, 38, id(font2), "%.0f%%", id(cabinet_fan).speed * 10);
+          it.printf(64, 38, id(font2), "%.0f%%", id(rack_fan).speed * 10);
+
+          // Line 5: Temperatures with label
+          it.print(0, 50, id(font3), "T:");
+          it.printf(15, 50, id(font2), "%.1f°", id(cabinet_temp).state);
+          it.printf(64, 50, id(font2), "%.1f°", id(rack_temp).state);
 
       - id: error_page
         lambda: |-
@@ -567,12 +575,15 @@ display:
           }
 
 font:
-  - file: "gfonts://Roboto"
+  - file: "gfonts://Roboto Mono"
     id: font1
-    size: 12
-  - file: "gfonts://Roboto"
+    size: 14
+  - file: "gfonts://Roboto Mono"
     id: font2
     size: 10
+  - file: "gfonts://Roboto Mono"
+    id: font3
+    size: 8
 
 status_led:
   pin:

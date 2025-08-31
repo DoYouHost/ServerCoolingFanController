@@ -1,4 +1,7 @@
 # 2025.2
+## .8
+- Changed font to "Roboto Mono" for better readability
+- Increased font sizes for better readability
 ## .7
 - Increased font sizes for better readability
 - Modified pinout for fan tachometers
