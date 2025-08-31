@@ -307,6 +307,7 @@ sensor:
           max_value: 6000
           ignore_out_of_range: true
     timeout: 5s
+    force_update: true
     unit_of_measurement: rpm
     accuracy_decimals: 0
     icon: mdi:fan
@@ -324,6 +325,7 @@ sensor:
           max_value: 6000
           ignore_out_of_range: true
     timeout: 5s
+    force_update: true
     unit_of_measurement: rpm
     accuracy_decimals: 0
     icon: mdi:fan
@@ -341,6 +343,7 @@ sensor:
           max_value: 6000
           ignore_out_of_range: true
     timeout: 5s
+    force_update: true
     unit_of_measurement: rpm
     accuracy_decimals: 0
     icon: mdi:fan
@@ -358,6 +361,7 @@ sensor:
           max_value: 6000
           ignore_out_of_range: true
     timeout: 5s
+    force_update: true
     unit_of_measurement: rpm
     accuracy_decimals: 0
     icon: mdi:fan
@@ -452,7 +456,7 @@ output:
     id: cabinet_fan_output
     pin: GPIO5
     frequency: 19531
-    min_power: 0.6
+    min_power: 0.7
     zero_means_zero: true
 
   - platform: ledc
@@ -514,28 +518,24 @@ display:
       - id: normal_page
         lambda: |-
           // Line 1: Headers with bigger font
-          it.print(0, 0, id(font1), "C:");
-          it.print(64, 0, id(font1), "R:");
+          it.print(0, 0, id(font1), "CAB");
+          it.print(64, 0, id(font1), "RACK");
 
-          // Line 2: Fan 1 RPM with labels
-          it.print(0, 14, id(font3), "F1:");
-          it.printf(20, 14, id(font2), "%.0f", id(cabinet_fan_tach).state);
-          it.printf(64, 14, id(font2), "%.0f", id(rack_fan_tach).state);
+          // Line 2: Fan 1 RPM
+          it.printf(0, 18, id(font2), "%.0f", id(cabinet_fan_tach).state);
+          it.printf(64, 18, id(font2), "%.0f", id(rack_fan_tach).state);
 
-          // Line 3: Fan 2 RPM with labels  
-          it.print(0, 26, id(font3), "F2:");
-          it.printf(20, 26, id(font2), "%.0f", id(cabinet_fan2_tach).state);
-          it.printf(64, 26, id(font2), "%.0f", id(rack_fan2_tach).state);
+          // Line 3: Fan 2 RPM  
+          it.printf(0, 32, id(font2), "%.0f", id(cabinet_fan2_tach).state);
+          it.printf(64, 32, id(font2), "%.0f", id(rack_fan2_tach).state);
 
-          // Line 4: PWM percentages with label
-          it.print(0, 38, id(font3), "PWM:");
-          it.printf(25, 38, id(font2), "%.0f%%", id(cabinet_fan).speed * 10.0);
-          it.printf(64, 38, id(font2), "%.0f%%", id(rack_fan).speed * 10.0);
+          // Line 4: PWM percentages
+          it.printf(0, 46, id(font3), "%.0f%%", id(cabinet_fan).speed * 10.0);
+          it.printf(64, 46, id(font3), "%.0f%%", id(rack_fan).speed * 10.0);
 
-          // Line 5: Temperatures with label
-          it.print(0, 50, id(font3), "T:");
-          it.printf(15, 50, id(font2), "%.1f°", id(cabinet_temp).state);
-          it.printf(64, 50, id(font2), "%.1f°", id(rack_temp).state);
+          // Line 5: Temperatures
+          it.printf(0, 58, id(font3), "%.1f°", id(cabinet_temp).state);
+          it.printf(64, 58, id(font3), "%.1f°", id(rack_temp).state);
 
       - id: error_page
         lambda: |-
@@ -577,13 +577,13 @@ display:
 font:
   - file: "gfonts://Source Code Pro"
     id: font1
-    size: 14
+    size: 16
   - file: "gfonts://Source Code Pro"
     id: font2
-    size: 10
+    size: 12
   - file: "gfonts://Source Code Pro"
     id: font3
-    size: 8
+    size: 10
 
 status_led:
   pin:

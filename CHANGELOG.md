@@ -1,12 +1,13 @@
 # 2025.2
-## .11
-- Added %PWM on fan speed display
 ## .10
-- Reduced throttle average to 2s
-- Reduced timeout to 5s
+- Changed min_power to 0.7 for cabinet fan
+- Changed display layout for better readability
+- Added force_update: true
 ## .9
 - Changed font to "Source Code Pro" for better readability
 - Added %PWM on fan speed display
+- Reduced throttle average to 2s
+- Reduced timeout to 5s
 ## .8
 - Changed font to "Roboto Mono" for better readability
 - Increased font sizes for better readability
