@@ -529,8 +529,8 @@ display:
 
           // Line 4: PWM percentages with label
           it.print(0, 38, id(font3), "PWM:");
-          it.printf(25, 38, id(font2), "%.0f%%", id(cabinet_fan).speed * 10);
-          it.printf(64, 38, id(font2), "%.0f%%", id(rack_fan).speed * 10);
+          it.printf(25, 38, id(font2), "%.0f%%", id(cabinet_fan_output).get_state() * 100);
+          it.printf(64, 38, id(font2), "%.0f%%", id(rack_fan_output).get_state() * 100);
 
           // Line 5: Temperatures with label
           it.print(0, 50, id(font3), "T:");
@@ -575,13 +575,13 @@ display:
           }
 
 font:
-  - file: "gfonts://Roboto Mono"
+  - file: "gfonts://Source Code Pro"
     id: font1
     size: 14
-  - file: "gfonts://Roboto Mono"
+  - file: "gfonts://Source Code Pro"
     id: font2
     size: 10
-  - file: "gfonts://Roboto Mono"
+  - file: "gfonts://Source Code Pro"
     id: font3
     size: 8
 

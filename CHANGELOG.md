@@ -1,4 +1,7 @@
 # 2025.2
+## .9
+- Changed font to "Source Code Pro" for better readability
+- Added %PWM on fan speed display
 ## .8
 - Changed font to "Roboto Mono" for better readability
 - Increased font sizes for better readability
