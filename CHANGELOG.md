@@ -1,4 +1,7 @@
 # 2025.2
+## .10
+- Reduced throttle average to 2s
+- Reduced timeout to 5s
 ## .9
 - Changed font to "Source Code Pro" for better readability
 - Added %PWM on fan speed display

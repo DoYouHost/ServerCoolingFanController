@@ -300,13 +300,13 @@ sensor:
     pin:
       number: GPIO32
     filters:
-      - throttle_average: 3s
+      - throttle_average: 2s
       - multiply: 0.5
       - clamp:
           min_value: 0
-          max_value: 10000
+          max_value: 6000
           ignore_out_of_range: true
-    timeout: 10s
+    timeout: 5s
     unit_of_measurement: rpm
     accuracy_decimals: 0
     icon: mdi:fan
@@ -317,13 +317,13 @@ sensor:
     pin:
       number: GPIO35
     filters:
-      - throttle_average: 3s
+      - throttle_average: 2s
       - multiply: 0.5
       - clamp:
           min_value: 0
-          max_value: 10000
+          max_value: 6000
           ignore_out_of_range: true
-    timeout: 10s
+    timeout: 5s
     unit_of_measurement: rpm
     accuracy_decimals: 0
     icon: mdi:fan
@@ -334,13 +334,13 @@ sensor:
     pin:
       number: GPIO33
     filters:
-      - throttle_average: 3s
+      - throttle_average: 2s
       - multiply: 0.5
       - clamp:
           min_value: 0
-          max_value: 10000
+          max_value: 6000
           ignore_out_of_range: true
-    timeout: 10s
+    timeout: 5s
     unit_of_measurement: rpm
     accuracy_decimals: 0
     icon: mdi:fan
@@ -351,13 +351,13 @@ sensor:
     pin:
       number: GPIO36
     filters:
-      - throttle_average: 3s
+      - throttle_average: 2s
       - multiply: 0.5
       - clamp:
           min_value: 0
-          max_value: 10000
+          max_value: 6000
           ignore_out_of_range: true
-    timeout: 10s
+    timeout: 5s
     unit_of_measurement: rpm
     accuracy_decimals: 0
     icon: mdi:fan
