@@ -1,4 +1,7 @@
 # 2025.2
+## .7
+- Increased font sizes for better readability
+- Modified pinout for fan tachometers
 ## .6
 - Added clamp filters to fan speed sensors (fixes issue with RPM going crazy after fan is turned off and is spinning down)
 ## .5

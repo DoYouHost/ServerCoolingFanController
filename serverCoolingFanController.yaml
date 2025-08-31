@@ -315,7 +315,7 @@ sensor:
     id: rack_fan_tach
     name: "Rack Fan RPM"
     pin:
-      number: GPIO33
+      number: GPIO35
     filters:
       - throttle_average: 3s
       - multiply: 0.5
@@ -332,7 +332,7 @@ sensor:
     id: cabinet_fan2_tach
     name: "Cabinet Fan 2 RPM"
     pin:
-      number: GPIO35
+      number: GPIO33
     filters:
       - throttle_average: 3s
       - multiply: 0.5
@@ -492,7 +492,7 @@ light:
     id: error_led
     internal: true
     output: error_led_output
-    restore_mode: RESTORE_DEFAULT_OFF
+    restore_mode: ALWAYS_OFF
     effects:
       - strobe:
           name: "Error Strobe"
@@ -513,22 +513,21 @@ display:
     pages:
       - id: normal_page
         lambda: |-
-          // Cabinet Section
-          it.print(0, 0, id(font2), "Cabinet:");
-          it.printf(0, 10, id(font2), "%.0f RPM", id(cabinet_fan_tach).state);
-          it.printf(0, 20, id(font2), "%.0f RPM", id(cabinet_fan2_tach).state);
-          it.printf(0, 30, id(font2), "%.1f°C", id(cabinet_temp).state);
+          // Line 1: Headers
+          it.print(0, 0, id(font2), "Cabinet");
+          it.print(64, 0, id(font2), "Rack");
 
-          // Rack Section
-          it.print(64, 0, id(font2), "Rack:");
-          it.printf(64, 10, id(font2), "%.0f RPM", id(rack_fan_tach).state);
-          it.printf(64, 20, id(font2), "%.0f RPM", id(rack_fan2_tach).state);
-          it.printf(64, 30, id(font2), "%.1f°C", id(rack_temp).state);
+          // Line 2: Fan 1 RPM
+          it.printf(0, 16, id(font2), "%.0f RPM", id(cabinet_fan_tach).state);
+          it.printf(64, 16, id(font2), "%.0f RPM", id(rack_fan_tach).state);
 
-          // System info
-          it.line(0, 42, 128, 42);
-          it.printf(0, 46, id(font2), "CPU: %.1f°C",
-                    id(internal_temp).state);
+          // Line 3: Fan 2 RPM  
+          it.printf(0, 32, id(font2), "%.0f RPM", id(cabinet_fan2_tach).state);
+          it.printf(64, 32, id(font2), "%.0f RPM", id(rack_fan2_tach).state);
+
+          // Line 4: Temperatures
+          it.printf(0, 48, id(font2), "%.1f°C", id(cabinet_temp).state);
+          it.printf(64, 48, id(font2), "%.1f°C", id(rack_temp).state);
 
       - id: error_page
         lambda: |-
@@ -570,10 +569,10 @@ display:
 font:
   - file: "gfonts://Roboto"
     id: font1
-    size: 10
+    size: 12
   - file: "gfonts://Roboto"
     id: font2
-    size: 8
+    size: 10
 
 status_led:
   pin:
