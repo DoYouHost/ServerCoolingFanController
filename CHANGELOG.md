@@ -5,6 +5,9 @@
 - Increased update interval for fan curves status to 60s
 - Fixed JSON file parsing for fan curves
 - Added fan curves JSON download after status is changed to "connected"
+- Added AUTO mode for fan control
+- Improved fan control logic for AUTO mode
+- Changed default fan curve points
 ## .1
 - Fixes for http_request handling JSON responses
 ## .0

@@ -206,6 +206,14 @@ interval:
             id(rack_fan_error_count) = 0; // Reset when fan is off
           }
 
+  - interval: 30s
+    then:
+      - if:
+          condition:
+            lambda: return id(auto_mode_switch).state == true && id(manual_override_button).state == false;
+          then:
+            - script.execute: auto_fan_control
+
 text_sensor:
   - platform: version
     name: ESPHome Version
@@ -707,6 +715,101 @@ script:
             }
           });
 
+  - id: auto_fan_control
+    mode: restart
+    then:
+      - lambda: |-
+          // Check if curves are loaded
+          if (!id(cabinet_curve_loaded) || !id(rack_curve_loaded)) {
+            ESP_LOGW("auto_control", "Fan curves not loaded, skipping auto control");
+            return;
+          }
+          
+          // Get current temperatures
+          float cabinet_temperature = id(cabinet_temp)->state;
+          float rack_temperature = id(rack_temp)->state;
+          
+          // Calculate cabinet fan speed using linear interpolation
+          int cabinet_speed = 0; // Default speed - fans off
+          if (id(cabinet_fan_temps).size() >= 2) {
+            for (size_t i = 0; i < id(cabinet_fan_temps).size() - 1; i++) {
+              float temp1 = id(cabinet_fan_temps)[i];
+              float temp2 = id(cabinet_fan_temps)[i + 1];
+              int speed1 = id(cabinet_fan_speeds)[i];
+              int speed2 = id(cabinet_fan_speeds)[i + 1];
+              
+              if (cabinet_temperature >= temp1 && cabinet_temperature <= temp2) {
+                // Linear interpolation
+                float ratio = (cabinet_temperature - temp1) / (temp2 - temp1);
+                cabinet_speed = speed1 + (int)((speed2 - speed1) * ratio);
+                break;
+              } else if (cabinet_temperature < temp1 && i == 0) {
+                // Below minimum temperature - turn off fans
+                cabinet_speed = 0;
+                break;
+              } else if (cabinet_temperature > temp2 && i == id(cabinet_fan_temps).size() - 2) {
+                // Above maximum temperature
+                cabinet_speed = speed2;
+                break;
+              }
+            }
+          }
+          
+          // Calculate rack fan speed using linear interpolation
+          int rack_speed = 0; // Default speed - fans off
+          if (id(rack_fan_temps).size() >= 2) {
+            for (size_t i = 0; i < id(rack_fan_temps).size() - 1; i++) {
+              float temp1 = id(rack_fan_temps)[i];
+              float temp2 = id(rack_fan_temps)[i + 1];
+              int speed1 = id(rack_fan_speeds)[i];
+              int speed2 = id(rack_fan_speeds)[i + 1];
+              
+              if (rack_temperature >= temp1 && rack_temperature <= temp2) {
+                // Linear interpolation
+                float ratio = (rack_temperature - temp1) / (temp2 - temp1);
+                rack_speed = speed1 + (int)((speed2 - speed1) * ratio);
+                break;
+              } else if (rack_temperature < temp1 && i == 0) {
+                // Below minimum temperature - turn off fans
+                rack_speed = 0;
+                break;
+              } else if (rack_temperature > temp2 && i == id(rack_fan_temps).size() - 2) {
+                // Above maximum temperature
+                rack_speed = speed2;
+                break;
+              }
+            }
+          }
+          
+          // Ensure speeds are within valid range (0-10)
+          if (cabinet_speed < 0) cabinet_speed = 0;
+          if (cabinet_speed > 10) cabinet_speed = 10;
+          if (rack_speed < 0) rack_speed = 0;
+          if (rack_speed > 10) rack_speed = 10;
+          
+          ESP_LOGI("auto_control", "Temperatures: Cabinet=%.1f°C, Rack=%.1f°C", cabinet_temperature, rack_temperature);
+          ESP_LOGI("auto_control", "Calculated speeds: Cabinet=%d, Rack=%d", cabinet_speed, rack_speed);
+          
+          // Set cabinet fan speed
+          auto cabinet_call = id(cabinet_fan).make_call();
+          if (cabinet_speed == 0) {
+            cabinet_call.set_state(false);
+          } else {
+            cabinet_call.set_state(true);
+            cabinet_call.set_speed(cabinet_speed);
+          }
+          cabinet_call.perform();
+          
+          // Set rack fan speed
+          auto rack_call = id(rack_fan).make_call();
+          if (rack_speed == 0) {
+            rack_call.set_state(false);
+          } else {
+            rack_call.set_state(true);
+            rack_call.set_speed(rack_speed);
+          }
+          rack_call.perform();
+
 button:
   - platform: restart
     id: restart_button
@@ -797,7 +900,7 @@ switch:
     optimistic: true
     restore_mode: RESTORE_DEFAULT_OFF
     icon: "mdi:fan-auto"
-    entity_category: config
+    # entity_category: config
     turn_on_action:
       - logger.log: "Auto mode enabled - fans will be controlled automatically"
     turn_off_action:
