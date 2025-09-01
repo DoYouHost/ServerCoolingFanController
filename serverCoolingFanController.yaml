@@ -599,9 +599,9 @@ fan:
     speed_count: 10
     on_turn_on:
       then:
-        - script.execute:
-            id: cabinet_fan_safe_start
-            speed: id(cabinet_fan).speed
+        - lambda: |-
+            int target_speed = id(cabinet_fan).speed > 0 ? id(cabinet_fan).speed : 1;
+            id(cabinet_fan_safe_start)->execute(target_speed);
     on_speed_set:
       then:
         - lambda: |-

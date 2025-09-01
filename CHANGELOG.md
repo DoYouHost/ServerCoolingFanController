@@ -1,4 +1,6 @@
 # 2025.2
+## .15
+- Improved fan speed control logic
 ## .14
 - Added support for showing 0% PWM if fan is off
 ## .13
