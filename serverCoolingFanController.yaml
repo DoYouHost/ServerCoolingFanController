@@ -658,10 +658,12 @@ display:
           it.printf(64, 26, id(font2), "%4.0f", id(rack_fan2_tach).state);
           it.print(96, 26, id(font3), "RPM");
 
-          // Line 4: PWM percentages (39-51px)
-          it.printf(0, 39, id(font2), "%3.0f%%", id(cabinet_fan).speed * 10.0);
+          // Line 4: PWM percentages (39-51px) - show 0% if fan is off
+          float cabinet_pwm = id(cabinet_fan).state ? id(cabinet_fan).speed * 10.0 : 0.0;
+          float rack_pwm = id(rack_fan).state ? id(rack_fan).speed * 10.0 : 0.0;
+          it.printf(0, 39, id(font2), "%3.0f%%", cabinet_pwm);
           it.print(32, 39, id(font3), "PWM");
-          it.printf(64, 39, id(font2), "%3.0f%%", id(rack_fan).speed * 10.0);
+          it.printf(64, 39, id(font2), "%3.0f%%", rack_pwm);
           it.print(96, 39, id(font3), "PWM");
 
           // Line 5: Temperatures (52-64px)

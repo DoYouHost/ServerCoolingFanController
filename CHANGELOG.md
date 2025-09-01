@@ -1,4 +1,6 @@
 # 2025.2
+## .14
+- Added support for showing 0% PWM if fan is off
 ## .13
 - Improved error message display for fan status
 - Added support for displaying fan error messages in a more user-friendly format
