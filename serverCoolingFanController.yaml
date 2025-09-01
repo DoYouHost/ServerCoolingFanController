@@ -46,6 +46,12 @@ globals:
     type: float
     restore_value: true
     initial_value: '0.0'
+  - id: cabinet_fan_spin_up_active
+    type: bool
+    initial_value: 'false'
+  - id: cabinet_fan_target_speed
+    type: int
+    initial_value: '0'
 
 ethernet:
   type: LAN8720
@@ -294,75 +300,67 @@ sensor:
     accuracy_decimals: 1
     icon: mdi:thermometer
 
-  - platform: pulse_meter
+  - platform: pulse_counter
     id: cabinet_fan_tach
     name: "Cabinet Fan RPM"
     pin:
       number: GPIO32
-    filters:
-      - throttle_average: 2s
-      - multiply: 0.5
-      - clamp:
-          min_value: 0
-          max_value: 6000
-          ignore_out_of_range: true
-    timeout: 5s
-    force_update: true
-    unit_of_measurement: rpm
+      mode:
+        input: true
+        pullup: false
+    count_mode:
+      rising_edge: INCREMENT
+      falling_edge: DISABLE
+    update_interval: 10s
+    unit_of_measurement: "RPM"
     accuracy_decimals: 0
     icon: mdi:fan
 
-  - platform: pulse_meter
+  - platform: pulse_counter
     id: rack_fan_tach
     name: "Rack Fan RPM"
     pin:
       number: GPIO35
-    filters:
-      - throttle_average: 2s
-      - multiply: 0.5
-      - clamp:
-          min_value: 0
-          max_value: 6000
-          ignore_out_of_range: true
-    timeout: 5s
-    force_update: true
-    unit_of_measurement: rpm
+      mode:
+        input: true
+        pullup: false
+    count_mode:
+      rising_edge: INCREMENT
+      falling_edge: DISABLE
+    update_interval: 10s
+    unit_of_measurement: "RPM"
     accuracy_decimals: 0
     icon: mdi:fan
 
-  - platform: pulse_meter
+  - platform: pulse_counter
     id: cabinet_fan2_tach
     name: "Cabinet Fan 2 RPM"
     pin:
       number: GPIO33
-    filters:
-      - throttle_average: 2s
-      - multiply: 0.5
-      - clamp:
-          min_value: 0
-          max_value: 6000
-          ignore_out_of_range: true
-    timeout: 5s
-    force_update: true
-    unit_of_measurement: rpm
+      mode:
+        input: true
+        pullup: false
+    count_mode:
+      rising_edge: INCREMENT
+      falling_edge: DISABLE
+    update_interval: 10s
+    unit_of_measurement: "RPM"
     accuracy_decimals: 0
     icon: mdi:fan
 
-  - platform: pulse_meter
+  - platform: pulse_counter
     id: rack_fan2_tach
     name: "Rack Fan 2 RPM"
     pin:
       number: GPIO36
-    filters:
-      - throttle_average: 2s
-      - multiply: 0.5
-      - clamp:
-          min_value: 0
-          max_value: 6000
-          ignore_out_of_range: true
-    timeout: 5s
-    force_update: true
-    unit_of_measurement: rpm
+      mode:
+        input: true
+        pullup: false
+    count_mode:
+      rising_edge: INCREMENT
+      falling_edge: DISABLE
+    update_interval: 10s
+    unit_of_measurement: "RPM"
     accuracy_decimals: 0
     icon: mdi:fan
 
@@ -387,6 +385,33 @@ sensor:
     accuracy_decimals: 1
     icon: mdi:clock-outline
     entity_category: "diagnostic"
+
+script:
+  - id: cabinet_fan_safe_start
+    mode: restart
+    parameters:
+      speed: int
+    then:
+      - lambda: |-
+          id(cabinet_fan_target_speed) = speed;
+          id(cabinet_fan_spin_up_active) = true;
+      - fan.turn_on:
+          id: cabinet_fan
+          speed: 10
+      - logger.log:
+          format: "Cabinet fan starting with spin-up sequence, target: %d%%"
+          args: [ 'speed * 10' ]
+      - delay: 3s
+      - lambda: |-
+          if (id(cabinet_fan_spin_up_active)) {
+            id(cabinet_fan_spin_up_active) = false;
+            auto call = id(cabinet_fan).make_call();
+            call.set_speed(id(cabinet_fan_target_speed));
+            call.perform();
+          }
+      - logger.log:
+          format: "Cabinet fan spin-up complete, running at %d%%"
+          args: [ 'id(cabinet_fan_target_speed) * 10' ]
 
 button:
   - platform: restart
@@ -456,7 +481,7 @@ output:
     id: cabinet_fan_output
     pin: GPIO5
     frequency: 19531
-    min_power: 0.7
+    min_power: 0.75
     zero_means_zero: true
 
   - platform: ledc
@@ -483,6 +508,17 @@ fan:
     name: "Cabinet Fan"
     restore_mode: RESTORE_DEFAULT_OFF
     speed_count: 10
+    on_turn_on:
+      then:
+        - script.execute:
+            id: cabinet_fan_safe_start
+            speed: id(cabinet_fan).speed
+    on_speed_set:
+      then:
+        - lambda: |-
+            if (!id(cabinet_fan_spin_up_active)) {
+              id(cabinet_fan_target_speed) = x;
+            }
 
   - platform: speed
     id: rack_fan
@@ -525,7 +561,7 @@ display:
           it.printf(0, 18, id(font2), "%.0f", id(cabinet_fan_tach).state);
           it.printf(64, 18, id(font2), "%.0f", id(rack_fan_tach).state);
 
-          // Line 3: Fan 2 RPM  
+          // Line 3: Fan 2 RPM
           it.printf(0, 32, id(font2), "%.0f", id(cabinet_fan2_tach).state);
           it.printf(64, 32, id(font2), "%.0f", id(rack_fan2_tach).state);
 

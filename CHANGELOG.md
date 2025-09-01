@@ -1,4 +1,7 @@
 # 2025.2
+## .11
+- Added cabinet_fan_safe_start script
+- Changed pulse_meter to pulse_counter
 ## .10
 - Changed min_power to 0.7 for cabinet fan
 - Changed display layout for better readability
