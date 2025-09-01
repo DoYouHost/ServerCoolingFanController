@@ -1,4 +1,8 @@
 # 2025.2
+## .12
+- Changed update interval for RPM sensors
+- Added throttle_average for RPM
+- Changed display layout for better readability
 ## .11
 - Added cabinet_fan_safe_start script
 - Changed pulse_meter to pulse_counter

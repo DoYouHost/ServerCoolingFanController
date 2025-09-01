@@ -311,7 +311,14 @@ sensor:
     count_mode:
       rising_edge: INCREMENT
       falling_edge: DISABLE
-    update_interval: 10s
+    update_interval: 1s
+    filters:
+      - multiply: 0.5
+      - throttle_with_priority:
+        timeout: 10s
+        value:
+          - nan
+          - 0
     unit_of_measurement: "RPM"
     accuracy_decimals: 0
     icon: mdi:fan
@@ -327,7 +334,14 @@ sensor:
     count_mode:
       rising_edge: INCREMENT
       falling_edge: DISABLE
-    update_interval: 10s
+    update_interval: 1s
+    filters:
+      - multiply: 0.5
+      - throttle_with_priority:
+        timeout: 10s
+        value:
+          - nan
+          - 0
     unit_of_measurement: "RPM"
     accuracy_decimals: 0
     icon: mdi:fan
@@ -343,7 +357,14 @@ sensor:
     count_mode:
       rising_edge: INCREMENT
       falling_edge: DISABLE
-    update_interval: 10s
+    update_interval: 1s
+    filters:
+      - multiply: 0.5
+      - throttle_with_priority:
+        timeout: 10s
+        value:
+          - nan
+          - 0
     unit_of_measurement: "RPM"
     accuracy_decimals: 0
     icon: mdi:fan
@@ -359,7 +380,14 @@ sensor:
     count_mode:
       rising_edge: INCREMENT
       falling_edge: DISABLE
-    update_interval: 10s
+    update_interval: 1s
+    filters:
+      - multiply: 0.5
+      - throttle_with_priority:
+        timeout: 10s
+        value:
+          - nan
+          - 0
     unit_of_measurement: "RPM"
     accuracy_decimals: 0
     icon: mdi:fan
@@ -481,7 +509,7 @@ output:
     id: cabinet_fan_output
     pin: GPIO5
     frequency: 19531
-    min_power: 0.75
+    min_power: 0.70
     zero_means_zero: true
 
   - platform: ledc
@@ -553,25 +581,33 @@ display:
     pages:
       - id: normal_page
         lambda: |-
-          // Line 1: Headers with bigger font
-          it.print(0, 0, id(font1), "CAB");
-          it.print(64, 0, id(font1), "RACK");
+          // Line 1: Headers (0-12px)
+          it.print(0, 0, id(font2), "CAB");
+          it.print(64, 0, id(font2), "RACK");
 
-          // Line 2: Fan 1 RPM
-          it.printf(0, 18, id(font2), "%.0f", id(cabinet_fan_tach).state);
-          it.printf(64, 18, id(font2), "%.0f", id(rack_fan_tach).state);
+          // Line 2: Fan 1 RPM (13-25px)
+          it.printf(0, 13, id(font2), "%4.0f", id(cabinet_fan_tach).state);
+          it.print(32, 13, id(font3), "RPM");
+          it.printf(64, 13, id(font2), "%4.0f", id(rack_fan_tach).state);
+          it.print(96, 13, id(font3), "RPM");
 
-          // Line 3: Fan 2 RPM
-          it.printf(0, 32, id(font2), "%.0f", id(cabinet_fan2_tach).state);
-          it.printf(64, 32, id(font2), "%.0f", id(rack_fan2_tach).state);
+          // Line 3: Fan 2 RPM (26-38px)
+          it.printf(0, 26, id(font2), "%4.0f", id(cabinet_fan2_tach).state);
+          it.print(32, 26, id(font3), "RPM");
+          it.printf(64, 26, id(font2), "%4.0f", id(rack_fan2_tach).state);
+          it.print(96, 26, id(font3), "RPM");
 
-          // Line 4: PWM percentages
-          it.printf(0, 46, id(font3), "%.0f%%", id(cabinet_fan).speed * 10.0);
-          it.printf(64, 46, id(font3), "%.0f%%", id(rack_fan).speed * 10.0);
+          // Line 4: PWM percentages (39-51px)
+          it.printf(0, 39, id(font2), "%3.0f%%", id(cabinet_fan).speed * 10.0);
+          it.print(32, 39, id(font3), "PWM");
+          it.printf(64, 39, id(font2), "%3.0f%%", id(rack_fan).speed * 10.0);
+          it.print(96, 39, id(font3), "PWM");
 
-          // Line 5: Temperatures
-          it.printf(0, 58, id(font3), "%.1f°", id(cabinet_temp).state);
-          it.printf(64, 58, id(font3), "%.1f°", id(rack_temp).state);
+          // Line 5: Temperatures (52-64px)
+          it.printf(0, 52, id(font2), "%4.1f", id(cabinet_temp).state);
+          it.print(32, 52, id(font3), "°C");
+          it.printf(64, 52, id(font2), "%4.1f", id(rack_temp).state);
+          it.print(96, 52, id(font3), "°C");
 
       - id: error_page
         lambda: |-
