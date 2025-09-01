@@ -7,7 +7,7 @@ on:
 
 jobs:
   cleanup:
-    uses: DoYouHost/workflows/.github/workflows/cleanup-r2.yml
+    uses: DoYouHost/workflows/.github/workflows/cleanup-r2.yml@main
     with:
       directory: 'serverCoolingFanController'
       days_old: '30'
