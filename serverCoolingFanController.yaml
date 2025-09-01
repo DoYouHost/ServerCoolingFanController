@@ -547,7 +547,8 @@ script:
                         args: [ 'body.length()' ]
                     - script.execute:
                         id: parse_fan_curves
-                        json_content: response->body;
+                        json_content: !lambda |-
+                          return body;
                   else:
                     - logger.log:
                         format: "Failed to download fan curves - HTTP status: %d, message: %s"

@@ -1,4 +1,6 @@
 # 2025.3
+## .1
+- Fixes for http_request handling JSON responses
 ## .0
 - Added support for setting after how many seconds the fan error state is triggered
 - When ESP is restarted fan states are restored with safe start sequence
