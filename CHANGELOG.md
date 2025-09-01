@@ -1,4 +1,10 @@
 # 2025.3
+## .2
+- Changed logging level for pulse_counter component to INFO
+- Added text_sensor for fan curves status
+- Increased update interval for fan curves status to 60s
+- Fixed JSON file parsing for fan curves
+- Added fan curves JSON download after status is changed to "connected"
 ## .1
 - Fixes for http_request handling JSON responses
 ## .0

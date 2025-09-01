@@ -28,7 +28,6 @@ esphome:
             int restored_speed = id(cabinet_fan).speed > 0 ? id(cabinet_fan).speed : 1;
             id(cabinet_fan_safe_start)->execute(restored_speed);
           }
-      - script.execute: download_fan_curves
 
 esp32:
   board: esp32dev
@@ -75,6 +74,27 @@ globals:
   - id: rack_fan_saved_speed
     type: int
     initial_value: '0'
+  - id: cabinet_fan_temps
+    type: std::vector<float>
+    restore_value: false
+  - id: cabinet_fan_speeds
+    type: std::vector<int>
+    restore_value: false
+  - id: rack_fan_temps
+    type: std::vector<float>
+    restore_value: false
+  - id: rack_fan_speeds
+    type: std::vector<int>
+    restore_value: false
+  - id: cabinet_curve_loaded
+    type: bool
+    initial_value: 'false'
+  - id: rack_curve_loaded
+    type: bool
+    initial_value: 'false'
+  - id: fan_curves_downloaded
+    type: bool
+    initial_value: 'false'
 
 ethernet:
   type: LAN8720
@@ -91,6 +111,8 @@ debug:
 
 logger:
   level: DEBUG
+  logs:
+    pulse_counter: INFO
 
 safe_mode:
 
@@ -243,11 +265,53 @@ text_sensor:
       return error_msg;
     update_interval: 5s
 
+  - platform: template
+    id: fan_curves_status
+    name: "Fan Curves Status"
+    entity_category: "diagnostic"
+    lambda: |-
+      std::string status = "";
+      
+      if (id(cabinet_curve_loaded)) {
+        status += "Cabinet: " + std::to_string(id(cabinet_fan_temps).size()) + " points [";
+        for (size_t i = 0; i < id(cabinet_fan_temps).size(); i++) {
+          if (i > 0) status += ", ";
+          status += std::to_string((int)id(cabinet_fan_temps)[i]) + "°C:" + std::to_string(id(cabinet_fan_speeds)[i] * 10) + "%";
+        }
+        status += "]";
+      } else {
+        status += "Cabinet: Not loaded";
+      }
+      
+      status += " | ";
+      
+      if (id(rack_curve_loaded)) {
+        status += "Rack: " + std::to_string(id(rack_fan_temps).size()) + " points [";
+        for (size_t i = 0; i < id(rack_fan_temps).size(); i++) {
+          if (i > 0) status += ", ";
+          status += std::to_string((int)id(rack_fan_temps)[i]) + "°C:" + std::to_string(id(rack_fan_speeds)[i] * 10) + "%";
+        }
+        status += "]";
+      } else {
+        status += "Rack: Not loaded";
+      }
+      
+      return status;
+    update_interval: 60s
+
 binary_sensor:
   - platform: status
     id: esp_status
     name: Status
     device_class: connectivity
+    on_state:
+      then:
+        - if:
+            condition:
+              lambda: return x == true && !id(fan_curves_downloaded);
+            then:
+              - delay: 5s
+              - script.execute: download_fan_curves
 
   - platform: gpio
     id: manual_override_button
@@ -562,33 +626,83 @@ script:
       - lambda: |-
           ESP_LOGI("fan_curves", "Parsing JSON content, length: %d bytes", json_content.length());
           
-          // Log first 200 characters for debugging
-          if (json_content.length() > 0) {
-            std::string preview = json_content.substr(0, std::min((size_t)200, json_content.length()));
-            ESP_LOGI("fan_curves", "JSON preview: %s%s", 
-                    preview.c_str(), 
-                    json_content.length() > 200 ? "..." : "");
-          }
-          
           json::parse_json(json_content, [](JsonObject root) -> bool {
-            if (root["fan_curves"]) {
-              ESP_LOGI("fan_curves", "Found fan_curves object in JSON");
+            if (root["curves"]) {
+              ESP_LOGI("fan_curves", "Found curves object in JSON");
               
-              // Check for different fan curve profiles
-              if (root["fan_curves"]["cpu_fan"]) {
-                ESP_LOGI("fan_curves", "Found CPU fan curve configuration");
-                // TODO: Apply CPU fan curve settings
+              // Parse cabinet_fan curve
+              if (root["curves"]["cabinet_fan"]) {
+                ESP_LOGI("fan_curves", "Found cabinet_fan curve configuration");
+                JsonObject cabinet_curve = root["curves"]["cabinet_fan"];
+                
+                if (cabinet_curve["name"]) {
+                  ESP_LOGI("fan_curves", "Cabinet fan curve name: %s", cabinet_curve["name"].as<const char*>());
+                }
+                
+                if (cabinet_curve["points"]) {
+                  JsonArray points = cabinet_curve["points"];
+                  ESP_LOGI("fan_curves", "Cabinet fan curve has %d temperature points", points.size());
+                  
+                  // Clear existing curve data
+                  id(cabinet_fan_temps).clear();
+                  id(cabinet_fan_speeds).clear();
+                  
+                  // Store new curve points in vectors
+                  for (JsonObject point : points) {
+                    float temp = point["temp"];
+                    int speed = point["speed"];
+                    ESP_LOGI("fan_curves", "  Point: %.1f°C -> %d0%% speed", temp, speed);
+                    
+                    id(cabinet_fan_temps).push_back(temp);
+                    id(cabinet_fan_speeds).push_back(speed);
+                  }
+                  
+                  id(cabinet_curve_loaded) = true;
+                  ESP_LOGI("fan_curves", "Cabinet fan curve loaded with %d points", id(cabinet_fan_temps).size());
+                }
               }
               
-              if (root["fan_curves"]["cabinet_fan"]) {
-                ESP_LOGI("fan_curves", "Found Cabinet fan curve configuration");
-                // TODO: Apply Cabinet fan curve settings
+              // Parse rack_fan curve
+              if (root["curves"]["rack_fan"]) {
+                ESP_LOGI("fan_curves", "Found rack_fan curve configuration");
+                JsonObject rack_curve = root["curves"]["rack_fan"];
+                
+                if (rack_curve["name"]) {
+                  ESP_LOGI("fan_curves", "Rack fan curve name: %s", rack_curve["name"].as<const char*>());
+                }
+                
+                if (rack_curve["points"]) {
+                  JsonArray points = rack_curve["points"];
+                  ESP_LOGI("fan_curves", "Rack fan curve has %d temperature points", points.size());
+                  
+                  // Clear existing curve data
+                  id(rack_fan_temps).clear();
+                  id(rack_fan_speeds).clear();
+                  
+                  // Store new curve points in vectors
+                  for (JsonObject point : points) {
+                    float temp = point["temp"];
+                    int speed = point["speed"];
+                    ESP_LOGI("fan_curves", "  Point: %.1f°C -> %d0%% speed", temp, speed);
+                    
+                    id(rack_fan_temps).push_back(temp);
+                    id(rack_fan_speeds).push_back(speed);
+                  }
+                  
+                  id(rack_curve_loaded) = true;
+                  ESP_LOGI("fan_curves", "Rack fan curve loaded with %d points", id(rack_fan_temps).size());
+                }
               }
               
-              ESP_LOGI("fan_curves", "Fan curves parsed successfully");
+              if (root["version"]) {
+                ESP_LOGI("fan_curves", "JSON version: %s", root["version"].as<const char*>());
+              }
+              
+              ESP_LOGI("fan_curves", "Fan curves parsed and stored in vectors successfully");
+              id(fan_curves_downloaded) = true;
               return true;
             } else {
-              ESP_LOGI("fan_curves", "No 'fan_curves' key found in JSON!");
+              ESP_LOGI("fan_curves", "No 'curves' key found in JSON!");
               return false;
             }
           });
@@ -636,6 +750,7 @@ button:
     entity_category: "config"
     on_press:
       then:
+        - lambda: id(fan_curves_downloaded) = false;
         - script.execute: download_fan_curves
 
 number:
