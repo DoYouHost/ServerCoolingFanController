@@ -315,10 +315,10 @@ sensor:
     filters:
       - multiply: 0.5
       - throttle_with_priority:
-        timeout: 10s
-        value:
-          - nan
-          - 0
+          timeout: 10s
+          value:
+            - nan
+            - 0
     unit_of_measurement: "RPM"
     accuracy_decimals: 0
     icon: mdi:fan
@@ -338,10 +338,10 @@ sensor:
     filters:
       - multiply: 0.5
       - throttle_with_priority:
-        timeout: 10s
-        value:
-          - nan
-          - 0
+          timeout: 10s
+          value:
+            - nan
+            - 0
     unit_of_measurement: "RPM"
     accuracy_decimals: 0
     icon: mdi:fan
@@ -361,10 +361,10 @@ sensor:
     filters:
       - multiply: 0.5
       - throttle_with_priority:
-        timeout: 10s
-        value:
-          - nan
-          - 0
+          timeout: 10s
+          value:
+            - nan
+            - 0
     unit_of_measurement: "RPM"
     accuracy_decimals: 0
     icon: mdi:fan
@@ -384,10 +384,10 @@ sensor:
     filters:
       - multiply: 0.5
       - throttle_with_priority:
-        timeout: 10s
-        value:
-          - nan
-          - 0
+          timeout: 10s
+          value:
+            - nan
+            - 0
     unit_of_measurement: "RPM"
     accuracy_decimals: 0
     icon: mdi:fan
