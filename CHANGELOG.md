@@ -1,4 +1,9 @@
 # 2025.2
+## .13
+- Improved error message display for fan status
+- Added support for displaying fan error messages in a more user-friendly format
+- Additional filtering for fan RPM sensors
+- Manual override button now saves and restores fan states
 ## .12
 - Changed update interval for RPM sensors
 - Added throttle_average for RPM

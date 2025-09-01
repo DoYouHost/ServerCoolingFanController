@@ -52,6 +52,18 @@ globals:
   - id: cabinet_fan_target_speed
     type: int
     initial_value: '0'
+  - id: cabinet_fan_saved_state
+    type: bool
+    initial_value: 'false'
+  - id: rack_fan_saved_state
+    type: bool
+    initial_value: 'false'
+  - id: cabinet_fan_saved_speed
+    type: int
+    initial_value: '0'
+  - id: rack_fan_saved_speed
+    type: int
+    initial_value: '0'
 
 ethernet:
   type: LAN8720
@@ -230,18 +242,37 @@ binary_sensor:
       - delayed_off: 50ms
     on_press:
       then:
+        - lambda: |-
+            id(cabinet_fan_saved_state) = id(cabinet_fan).state;
+            id(rack_fan_saved_state) = id(rack_fan).state;
+            id(cabinet_fan_saved_speed) = id(cabinet_fan).speed;
+            id(rack_fan_saved_speed) = id(rack_fan).speed;
         - fan.turn_on:
             id: cabinet_fan
             speed: 10
         - fan.turn_on:
             id: rack_fan
             speed: 10
-        - logger.log: "Manual override activated - fans at full speed"
+        - logger.log: "Manual override activated - fans at full speed, states saved"
     on_release:
       then:
-        - fan.turn_off: cabinet_fan
-        - fan.turn_off: rack_fan
-        - logger.log: "Manual override released - fans turned off"
+        - lambda: |-
+            if (id(cabinet_fan_saved_state)) {
+              auto call = id(cabinet_fan).make_call();
+              call.set_speed(id(cabinet_fan_saved_speed));
+              call.perform();
+            } else {
+              id(cabinet_fan).turn_off().perform();
+            }
+            
+            if (id(rack_fan_saved_state)) {
+              auto call = id(rack_fan).make_call();
+              call.set_speed(id(rack_fan_saved_speed));
+              call.perform();
+            } else {
+              id(rack_fan).turn_off().perform();
+            }
+        - logger.log: "Manual override released - fans restored to previous state"
 
   - platform: template
     id: fan_error
@@ -288,17 +319,27 @@ sensor:
     id: cabinet_temp
     address: $DS18B20_1_ADDRESS
     name: "Cabinet Temperature"
-    update_interval: 30s
+    update_interval: 5s
     accuracy_decimals: 1
     icon: mdi:thermometer
+    filters:
+      - throttle_with_priority:
+          timeout: 30s
+          value:
+            - nan
 
   - platform: dallas_temp
     id: rack_temp
     address: $DS18B20_2_ADDRESS
     name: "Rack Temperature"
-    update_interval: 30s
+    update_interval: 5s
     accuracy_decimals: 1
     icon: mdi:thermometer
+    filters:
+      - throttle_with_priority:
+          timeout: 30s
+          value:
+            - nan
 
   - platform: pulse_counter
     id: cabinet_fan_tach
@@ -315,10 +356,15 @@ sensor:
     filters:
       - multiply: 0.5
       - throttle_with_priority:
-          timeout: 10s
+          timeout: 3s
           value:
             - nan
             - 0
+      - clamp:
+          min_value: 0
+          max_value: 1500
+          ignore_out_of_range: true
+    force_update: true
     unit_of_measurement: "RPM"
     accuracy_decimals: 0
     icon: mdi:fan
@@ -338,10 +384,15 @@ sensor:
     filters:
       - multiply: 0.5
       - throttle_with_priority:
-          timeout: 10s
+          timeout: 3s
           value:
             - nan
             - 0
+      - clamp:
+          min_value: 0
+          max_value: 7000
+          ignore_out_of_range: true
+    force_update: true
     unit_of_measurement: "RPM"
     accuracy_decimals: 0
     icon: mdi:fan
@@ -361,10 +412,15 @@ sensor:
     filters:
       - multiply: 0.5
       - throttle_with_priority:
-          timeout: 10s
+          timeout: 3s
           value:
             - nan
             - 0
+      - clamp:
+          min_value: 0
+          max_value: 1500
+          ignore_out_of_range: true
+    force_update: true
     unit_of_measurement: "RPM"
     accuracy_decimals: 0
     icon: mdi:fan
@@ -384,10 +440,15 @@ sensor:
     filters:
       - multiply: 0.5
       - throttle_with_priority:
-          timeout: 10s
+          timeout: 3s
           value:
             - nan
             - 0
+      - clamp:
+          min_value: 0
+          max_value: 7000
+          ignore_out_of_range: true
+    force_update: true
     unit_of_measurement: "RPM"
     accuracy_decimals: 0
     icon: mdi:fan
@@ -509,7 +570,7 @@ output:
     id: cabinet_fan_output
     pin: GPIO5
     frequency: 19531
-    min_power: 0.70
+    min_power: 0.75
     zero_means_zero: true
 
   - platform: ledc
@@ -611,38 +672,31 @@ display:
 
       - id: error_page
         lambda: |-
+          // Line 1: Error header (0-16px)
           it.print(0, 0, id(font1), "FAN ERROR!");
-          it.line(0, 12, 128, 12);
-
-          // Temperature status
-          it.printf(0, 16, id(font2), "Cabinet: %.1f°C",
-                    id(cabinet_temp).state);
-          it.printf(0, 26, id(font2), "Rack: %.1f°C", id(rack_temp).state);
-          it.printf(0, 36, id(font2), "CPU: %.1f°C", id(internal_temp).state);
-
-          // Error details
-          it.line(0, 44, 128, 44);
-          int error_line = 48;
-
+          
+          int line_y = 17; // Start position for error messages
+          
+          // Check each fan and display only those with errors
           if (id(cabinet_fan_commanded) && id(cabinet_fan_error_count) >= 6) {
             if (id(cabinet_fan_tach).state == 0) {
-              it.print(0, error_line, id(font2), "Cabinet Fan 1 FAIL");
-              error_line += 8;
+              it.print(0, line_y, id(font2), "Cabinet Fan 1 FAIL");
+              line_y += 13;
             }
             if (id(cabinet_fan2_tach).state == 0) {
-              it.print(0, error_line, id(font2), "Cabinet Fan 2 FAIL");
-              error_line += 8;
+              it.print(0, line_y, id(font2), "Cabinet Fan 2 FAIL");
+              line_y += 13;
             }
           }
-
+          
           if (id(rack_fan_commanded) && id(rack_fan_error_count) >= 6) {
             if (id(rack_fan_tach).state == 0) {
-              it.print(0, error_line, id(font2), "Rack Fan 1 FAIL");
-              error_line += 8;
+              it.print(0, line_y, id(font2), "Rack Fan 1 FAIL");
+              line_y += 13;
             }
             if (id(rack_fan2_tach).state == 0) {
-              it.print(0, error_line, id(font2), "Rack Fan 2 FAIL");
-              error_line += 8;
+              it.print(0, line_y, id(font2), "Rack Fan 2 FAIL");
+              line_y += 13;
             }
           }
 
