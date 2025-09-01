@@ -1,3 +1,8 @@
+# 2025.3
+## .0
+- Added support for setting after how many seconds the fan error state is triggered
+- When ESP is restarted fan states are restored with safe start sequence
+- Testing support for fan curves via JSON configuration
 # 2025.2
 ## .15
 - Improved fan speed control logic

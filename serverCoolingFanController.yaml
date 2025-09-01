@@ -4,7 +4,6 @@ substitutions:
   OTA_PASSWORD: "dZDYhrmYcxn_M7ih0@_W9r5jbbkaD4gk"
   DS18B20_1_ADDRESS: "0x1b3c44e3817b6e28"
   DS18B20_2_ADDRESS: "0xc63a904d1f64ff28"
-  ERROR_COUNT_TRIGGER: "6"
   PROD_MANIFEST_URL: "https://morganmlg.com/serverCoolingFanController/manifest.json"
   BETA_MANIFEST_URL: "https://morganmlg.com/serverCoolingFanController/manifest-beta.json"
   WEB_USERNAME: "esphome"
@@ -18,6 +17,18 @@ esphome:
   project:
     name: "DoYouHost.ServerCoolingFanController"
     version: "dev"
+  on_boot:
+    priority: -100
+    then:
+      - lambda: |-
+          ESP_LOGI("main", "Checking fan states after boot...");
+          
+          if (id(cabinet_fan).state) {
+            ESP_LOGI("main", "Cabinet fan was restored as ON - starting safe start sequence");
+            int restored_speed = id(cabinet_fan).speed > 0 ? id(cabinet_fan).speed : 1;
+            id(cabinet_fan_safe_start)->execute(restored_speed);
+          }
+      - script.execute: download_fan_curves
 
 esp32:
   board: esp32dev
@@ -90,6 +101,7 @@ api:
     key: "$API_KEY"
 
 http_request:
+  follow_redirects: true
 
 ota:
   - platform: esphome
@@ -134,6 +146,9 @@ interval:
   - interval: 5s
     then:
       - lambda: |-
+          int required_cycles = (int)(id(failure_detection_after).state / 5.0);
+          if (required_cycles < 1) required_cycles = 1;
+          
           // Cabinet fan
           bool cabinet_running = id(cabinet_fan).state;
           id(cabinet_fan_commanded) = cabinet_running;
@@ -191,10 +206,13 @@ text_sensor:
     lambda: |-
       std::string error_msg = "No errors";
       bool has_error = false;
+      
+      int required_cycles = (int)(id(failure_detection_after).state / 5.0);
+      if (required_cycles < 1) required_cycles = 1;
 
       // Cabinet fans
       if (id(cabinet_fan_commanded) &&
-          id(cabinet_fan_error_count) >= $ERROR_COUNT_TRIGGER) {
+          id(cabinet_fan_error_count) >= required_cycles) {
         if (id(cabinet_fan_tach).state == 0) {
           error_msg = has_error ? error_msg + ", Cabinet Fan 1 not responding" :
                       "Cabinet Fan 1 not responding";
@@ -209,7 +227,7 @@ text_sensor:
 
       // Rack fans
       if (id(rack_fan_commanded) &&
-          id(rack_fan_error_count) >= $ERROR_COUNT_TRIGGER) {
+          id(rack_fan_error_count) >= required_cycles) {
         if (id(rack_fan_tach).state == 0) {
           error_msg = has_error ? error_msg + ", Rack Fan 1 not responding" :
                       "Rack Fan 1 not responding";
@@ -279,8 +297,12 @@ binary_sensor:
     name: "Fan Error"
     device_class: problem
     lambda: |-
-      return (id(cabinet_fan_error_count) >= $ERROR_COUNT_TRIGGER) ||
-             (id(rack_fan_error_count) >= $ERROR_COUNT_TRIGGER);
+      // Calculate required error cycles based on failure detection time
+      int required_cycles = (int)(id(failure_detection_after).state / 5.0);
+      if (required_cycles < 1) required_cycles = 1;
+      
+      return (id(cabinet_fan_error_count) >= required_cycles) ||
+             (id(rack_fan_error_count) >= required_cycles);
     on_state:
       then:
         - lambda: |-
@@ -502,6 +524,74 @@ script:
           format: "Cabinet fan spin-up complete, running at %d%%"
           args: [ 'id(cabinet_fan_target_speed) * 10' ]
 
+  - id: download_fan_curves
+    mode: restart
+    then:
+      - lambda: |-
+          std::string url = id(fan_curves_url).state;
+          ESP_LOGI("fan_curves", "Starting download from URL: %s", url.c_str());
+      - http_request.get:
+          url: !lambda |-
+            return ((std::string) id(fan_curves_url).state).c_str();
+          request_headers:
+            Content-Type: application/json
+          capture_response: true
+          on_response:
+            then:
+              - if:
+                  condition:
+                    lambda: return response->status_code == 200;
+                  then:
+                    - logger.log:
+                        format: "Fan curves downloaded successfully, content length: %d bytes"
+                        args: [ 'body.length()' ]
+                    - script.execute:
+                        id: parse_fan_curves
+                        json_content: response->body;
+                  else:
+                    - logger.log:
+                        format: "Failed to download fan curves - HTTP status: %d, message: %s"
+                        args: [ 'response->status_code', 'body.c_str()' ]
+
+  - id: parse_fan_curves
+    mode: restart
+    parameters:
+      json_content: string
+    then:
+      - lambda: |-
+          ESP_LOGI("fan_curves", "Parsing JSON content, length: %d bytes", json_content.length());
+          
+          // Log first 200 characters for debugging
+          if (json_content.length() > 0) {
+            std::string preview = json_content.substr(0, std::min((size_t)200, json_content.length()));
+            ESP_LOGI("fan_curves", "JSON preview: %s%s", 
+                    preview.c_str(), 
+                    json_content.length() > 200 ? "..." : "");
+          }
+          
+          json::parse_json(json_content, [](JsonObject root) -> bool {
+            if (root["fan_curves"]) {
+              ESP_LOGI("fan_curves", "Found fan_curves object in JSON");
+              
+              // Check for different fan curve profiles
+              if (root["fan_curves"]["cpu_fan"]) {
+                ESP_LOGI("fan_curves", "Found CPU fan curve configuration");
+                // TODO: Apply CPU fan curve settings
+              }
+              
+              if (root["fan_curves"]["cabinet_fan"]) {
+                ESP_LOGI("fan_curves", "Found Cabinet fan curve configuration");
+                // TODO: Apply Cabinet fan curve settings
+              }
+              
+              ESP_LOGI("fan_curves", "Fan curves parsed successfully");
+              return true;
+            } else {
+              ESP_LOGI("fan_curves", "No 'fan_curves' key found in JSON!");
+              return false;
+            }
+          });
+
 button:
   - platform: restart
     id: restart_button
@@ -538,7 +628,65 @@ button:
       then:
         - component.update: update_http_request
 
+  - platform: template
+    id: download_curves_button
+    name: "Download Fan Curves"
+    icon: mdi:download
+    entity_category: "config"
+    on_press:
+      then:
+        - script.execute: download_fan_curves
+
+number:
+  - platform: template
+    id: failure_detection_after
+    name: "Failure Detection After"
+    optimistic: true
+    min_value: 5
+    max_value: 300
+    step: 5
+    unit_of_measurement: "s"
+    icon: "mdi:timer-alert"
+    entity_category: "config"
+    restore_value: true
+    initial_value: 30
+    on_value:
+      then:
+        - logger.log:
+            format: "Failure detection time changed to %.0f seconds"
+            args: ['x']
+
+text:
+  - platform: template
+    id: fan_curves_url
+    name: "Fan Curves URL"
+    optimistic: true
+    min_length: 10
+    max_length: 255
+    mode: text
+    icon: "mdi:web"
+    entity_category: "config"
+    restore_value: true
+    initial_value: "https://raw.githubusercontent.com/DoYouHost/ServerCollingFanController/main/fan_curves/default.json"
+    on_value:
+      then:
+        - logger.log:
+            format: "Fan curves URL changed to: %s"
+            args: ['x.c_str()']
+
 switch:
+  - platform: template
+    id: auto_mode_switch
+    name: "Auto Mode"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    icon: "mdi:fan-auto"
+    entity_category: config
+    turn_on_action:
+      - logger.log: "Auto mode enabled - fans will be controlled automatically"
+    turn_off_action:
+      - logger.log: "Auto mode disabled - manual fan control"
+
   - platform: template
     name: Beta Firmware
     optimistic: true
@@ -679,8 +827,12 @@ display:
           
           int line_y = 17; // Start position for error messages
           
+          // Calculate required error cycles based on failure detection time
+          int required_cycles = (int)(id(failure_detection_after).state / 5.0);
+          if (required_cycles < 1) required_cycles = 1;
+          
           // Check each fan and display only those with errors
-          if (id(cabinet_fan_commanded) && id(cabinet_fan_error_count) >= 6) {
+          if (id(cabinet_fan_commanded) && id(cabinet_fan_error_count) >= required_cycles) {
             if (id(cabinet_fan_tach).state == 0) {
               it.print(0, line_y, id(font2), "Cabinet Fan 1 FAIL");
               line_y += 13;
@@ -691,7 +843,7 @@ display:
             }
           }
           
-          if (id(rack_fan_commanded) && id(rack_fan_error_count) >= 6) {
+          if (id(rack_fan_commanded) && id(rack_fan_error_count) >= required_cycles) {
             if (id(rack_fan_tach).state == 0) {
               it.print(0, line_y, id(font2), "Rack Fan 1 FAIL");
               line_y += 13;
