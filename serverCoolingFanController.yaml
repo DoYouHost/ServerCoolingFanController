@@ -22,11 +22,11 @@ esphome:
     then:
       - lambda: |-
           ESP_LOGI("main", "Checking fan states after boot...");
-          
-          if (id(cabinet_fan).state) {
-            ESP_LOGI("main", "Cabinet fan was restored as ON - starting safe start sequence");
-            int restored_speed = id(cabinet_fan).speed > 0 ? id(cabinet_fan).speed : 1;
-            id(cabinet_fan_safe_start)->execute(restored_speed);
+
+          if (id(rack_fan).state) {
+            ESP_LOGI("main", "Rack fan was restored as ON - starting safe start sequence");
+            int restored_speed = id(rack_fan).speed > 0 ? id(rack_fan).speed : 1;
+            id(rack_fan_safe_start)->execute(restored_speed);
           }
 
 esp32:
@@ -35,66 +35,56 @@ esp32:
     type: esp-idf
     version: recommended
 
+packages:
+  esphome_templates:
+    url: https://github.com/DoYouHost/ESPHomeTemplates.git
+    ref: HEAD
+    files:
+      - basic.yaml
+      - debug.yaml
+      - ethInfo.yaml
+      - webServer3.yaml
+      - updateBetaProdStaging.yaml
+    refresh: 0s
+
 globals:
-  - id: cabinet_fan_commanded
-    type: bool
-    initial_value: 'false'
   - id: rack_fan_commanded
     type: bool
     initial_value: 'false'
-  - id: cabinet_fan_error_count
-    type: int
-    initial_value: '0'
   - id: rack_fan_error_count
     type: int
     initial_value: '0'
-  - id: cabinet_fan_runtime_hours
-    type: float
-    restore_value: true
-    initial_value: '0.0'
   - id: rack_fan_runtime_hours
     type: float
     restore_value: true
     initial_value: '0.0'
-  - id: cabinet_fan_spin_up_active
+  - id: rack_fan_spin_up_active
     type: bool
     initial_value: 'false'
-  - id: cabinet_fan_target_speed
+  - id: rack_fan_target_speed
     type: int
     initial_value: '0'
-  - id: cabinet_fan_saved_state
-    type: bool
-    initial_value: 'false'
   - id: rack_fan_saved_state
     type: bool
     initial_value: 'false'
-  - id: cabinet_fan_saved_speed
-    type: int
-    initial_value: '0'
   - id: rack_fan_saved_speed
     type: int
     initial_value: '0'
-  - id: cabinet_fan_temps
-    type: std::vector<float>
-    restore_value: false
-  - id: cabinet_fan_speeds
-    type: std::vector<int>
-    restore_value: false
   - id: rack_fan_temps
     type: std::vector<float>
     restore_value: false
   - id: rack_fan_speeds
     type: std::vector<int>
     restore_value: false
-  - id: cabinet_curve_loaded
-    type: bool
-    initial_value: 'false'
   - id: rack_curve_loaded
     type: bool
     initial_value: 'false'
   - id: fan_curves_downloaded
     type: bool
     initial_value: 'false'
+  - id: ema_temp
+    type: float
+    initial_value: '0.0'
 
 ethernet:
   type: LAN8720
@@ -110,9 +100,9 @@ debug:
   update_interval: 5s
 
 logger:
-  level: DEBUG
   logs:
     pulse_counter: INFO
+    sensor: INFO
 
 safe_mode:
 
@@ -122,28 +112,9 @@ api:
   encryption:
     key: "$API_KEY"
 
-http_request:
-  follow_redirects: true
-
 ota:
   - platform: esphome
     password: "$OTA_PASSWORD"
-  - platform: http_request
-
-update:
-  - platform: http_request
-    id: update_http_request
-    name: Firmware Update
-    source: $PROD_MANIFEST_URL
-
-web_server:
-  port: 80
-  version: 3
-  include_internal: true
-  local: true
-  auth:
-    username: "$WEB_USERNAME"
-    password: "$WEB_PASSWORD"
 
 one_wire:
   - platform: gpio
@@ -170,26 +141,8 @@ interval:
       - lambda: |-
           int required_cycles = (int)(id(failure_detection_after).state / 5.0);
           if (required_cycles < 1) required_cycles = 1;
-          
-          // Cabinet fan
-          bool cabinet_running = id(cabinet_fan).state;
-          id(cabinet_fan_commanded) = cabinet_running;
 
-          if (cabinet_running) {
-            // Increment runtime hours (5 seconds = 5/3600 hours)
-            id(cabinet_fan_runtime_hours) += (5.0 / 3600.0);
-
-            if (id(cabinet_fan_tach).state == 0 ||
-                id(cabinet_fan2_tach).state == 0) {
-              id(cabinet_fan_error_count) += 1;
-            } else {
-              id(cabinet_fan_error_count) = 0; // Reset counter if working
-            }
-          } else {
-            id(cabinet_fan_error_count) = 0; // Reset when fan is off
-          }
-
-          // Rack fan
+          // Rack fans
           bool rack_running = id(rack_fan).state;
           id(rack_fan_commanded) = rack_running;
 
@@ -197,13 +150,14 @@ interval:
             // Increment runtime hours (5 seconds = 5/3600 hours)
             id(rack_fan_runtime_hours) += (5.0 / 3600.0);
 
-            if (id(rack_fan_tach).state == 0 || id(rack_fan2_tach).state == 0) {
+            if (id(rack_fan1_tach).state == 0 || id(rack_fan2_tach).state == 0 ||
+                id(rack_fan3_tach).state == 0 || id(rack_fan4_tach).state == 0) {
               id(rack_fan_error_count) += 1;
             } else {
-              id(rack_fan_error_count) = 0; // Reset counter if fans are working
+              id(rack_fan_error_count) = 0;
             }
           } else {
-            id(rack_fan_error_count) = 0; // Reset when fan is off
+            id(rack_fan_error_count) = 0;
           }
 
   - interval: 30s
@@ -215,50 +169,19 @@ interval:
             - script.execute: auto_fan_control
 
 text_sensor:
-  - platform: version
-    name: ESPHome Version
-    entity_category: "diagnostic"
-
-  - platform: ethernet_info
-    ip_address:
-      entity_category: "diagnostic"
-      name: IP Address
-    dns_address:
-      entity_category: "diagnostic"
-      name: DNS Address
-    mac_address:
-      entity_category: "diagnostic"
-      name: MAC Address
-
   - platform: template
     id: fan_error_explanation
     name: "Fan Error Details"
     lambda: |-
       std::string error_msg = "No errors";
       bool has_error = false;
-      
+
       int required_cycles = (int)(id(failure_detection_after).state / 5.0);
       if (required_cycles < 1) required_cycles = 1;
 
-      // Cabinet fans
-      if (id(cabinet_fan_commanded) &&
-          id(cabinet_fan_error_count) >= required_cycles) {
-        if (id(cabinet_fan_tach).state == 0) {
-          error_msg = has_error ? error_msg + ", Cabinet Fan 1 not responding" :
-                      "Cabinet Fan 1 not responding";
-          has_error = true;
-        }
-        if (id(cabinet_fan2_tach).state == 0) {
-          error_msg = has_error ? error_msg + ", Cabinet Fan 2 not responding" :
-                      "Cabinet Fan 2 not responding";
-          has_error = true;
-        }
-      }
-
-      // Rack fans
       if (id(rack_fan_commanded) &&
           id(rack_fan_error_count) >= required_cycles) {
-        if (id(rack_fan_tach).state == 0) {
+        if (id(rack_fan1_tach).state == 0) {
           error_msg = has_error ? error_msg + ", Rack Fan 1 not responding" :
                       "Rack Fan 1 not responding";
           has_error = true;
@@ -266,6 +189,16 @@ text_sensor:
         if (id(rack_fan2_tach).state == 0) {
           error_msg = has_error ? error_msg + ", Rack Fan 2 not responding" :
                       "Rack Fan 2 not responding";
+          has_error = true;
+        }
+        if (id(rack_fan3_tach).state == 0) {
+          error_msg = has_error ? error_msg + ", Rack Fan 3 not responding" :
+                      "Rack Fan 3 not responding";
+          has_error = true;
+        }
+        if (id(rack_fan4_tach).state == 0) {
+          error_msg = has_error ? error_msg + ", Rack Fan 4 not responding" :
+                      "Rack Fan 4 not responding";
           has_error = true;
         }
       }
@@ -279,39 +212,23 @@ text_sensor:
     entity_category: "diagnostic"
     lambda: |-
       std::string status = "";
-      
-      if (id(cabinet_curve_loaded)) {
-        status += "Cabinet: " + std::to_string(id(cabinet_fan_temps).size()) + " points [";
-        for (size_t i = 0; i < id(cabinet_fan_temps).size(); i++) {
-          if (i > 0) status += ", ";
-          status += std::to_string((int)id(cabinet_fan_temps)[i]) + "°C:" + std::to_string(id(cabinet_fan_speeds)[i] * 10) + "%";
-        }
-        status += "]";
-      } else {
-        status += "Cabinet: Not loaded";
-      }
-      
-      status += " | ";
-      
+
       if (id(rack_curve_loaded)) {
         status += "Rack: " + std::to_string(id(rack_fan_temps).size()) + " points [";
         for (size_t i = 0; i < id(rack_fan_temps).size(); i++) {
           if (i > 0) status += ", ";
-          status += std::to_string((int)id(rack_fan_temps)[i]) + "°C:" + std::to_string(id(rack_fan_speeds)[i] * 10) + "%";
+          status += std::to_string((int)id(rack_fan_temps)[i]) + "°C:" + std::to_string(id(rack_fan_speeds)[i]) + "%";
         }
         status += "]";
       } else {
         status += "Rack: Not loaded";
       }
-      
+
       return status;
     update_interval: 60s
 
 binary_sensor:
-  - platform: status
-    id: esp_status
-    name: Status
-    device_class: connectivity
+  - id: !extend esphome_status
     on_state:
       then:
         - if:
@@ -333,28 +250,15 @@ binary_sensor:
     on_press:
       then:
         - lambda: |-
-            id(cabinet_fan_saved_state) = id(cabinet_fan).state;
             id(rack_fan_saved_state) = id(rack_fan).state;
-            id(cabinet_fan_saved_speed) = id(cabinet_fan).speed;
             id(rack_fan_saved_speed) = id(rack_fan).speed;
         - fan.turn_on:
-            id: cabinet_fan
-            speed: 10
-        - fan.turn_on:
             id: rack_fan
-            speed: 10
-        - logger.log: "Manual override activated - fans at full speed, states saved"
+            speed: 100
+        - logger.log: "Manual override activated - fans at full speed, state saved"
     on_release:
       then:
         - lambda: |-
-            if (id(cabinet_fan_saved_state)) {
-              auto call = id(cabinet_fan).make_call();
-              call.set_speed(id(cabinet_fan_saved_speed));
-              call.perform();
-            } else {
-              id(cabinet_fan).turn_off().perform();
-            }
-            
             if (id(rack_fan_saved_state)) {
               auto call = id(rack_fan).make_call();
               call.set_speed(id(rack_fan_saved_speed));
@@ -369,12 +273,10 @@ binary_sensor:
     name: "Fan Error"
     device_class: problem
     lambda: |-
-      // Calculate required error cycles based on failure detection time
       int required_cycles = (int)(id(failure_detection_after).state / 5.0);
       if (required_cycles < 1) required_cycles = 1;
-      
-      return (id(cabinet_fan_error_count) >= required_cycles) ||
-             (id(rack_fan_error_count) >= required_cycles);
+
+      return id(rack_fan_error_count) >= required_cycles;
     on_state:
       then:
         - lambda: |-
@@ -388,56 +290,37 @@ binary_sensor:
         - component.update: my_display
 
 sensor:
-  - platform: uptime
-    name: Uptime
-    update_interval: 60s
-    accuracy_decimals: 0
-    icon: mdi:clock-outline
-    entity_category: "diagnostic"
-
-  - platform: debug
-    loop_time:
-      name: "Loop Time"
-    cpu_frequency:
-      name: "CPU Frequency"
-      unit_of_measurement: "MHz"
-      filters:
-        - multiply: 0.000001
-
-  - platform: internal_temperature
-    id: internal_temp
-    name: "Internal Temperature"
-    update_interval: 60s
-
   - platform: dallas_temp
-    id: cabinet_temp
+    id: temp_sensor_1
     address: $DS18B20_1_ADDRESS
-    name: "Cabinet Temperature"
+    name: "Temperature Sensor 1"
     update_interval: 5s
     accuracy_decimals: 1
     icon: mdi:thermometer
     filters:
+      - round: 1
       - throttle_with_priority:
           timeout: 30s
           value:
             - nan
 
   - platform: dallas_temp
-    id: rack_temp
+    id: temp_sensor_2
     address: $DS18B20_2_ADDRESS
-    name: "Rack Temperature"
+    name: "Temperature Sensor 2"
     update_interval: 5s
     accuracy_decimals: 1
     icon: mdi:thermometer
     filters:
+      - round: 1
       - throttle_with_priority:
           timeout: 30s
           value:
             - nan
 
   - platform: pulse_counter
-    id: cabinet_fan_tach
-    name: "Cabinet Fan RPM"
+    id: rack_fan1_tach
+    name: "Rack Fan 1 RPM"
     pin:
       number: GPIO32
       mode:
@@ -456,7 +339,7 @@ sensor:
             - 0
       - clamp:
           min_value: 0
-          max_value: 1500
+          max_value: 7000
           ignore_out_of_range: true
     force_update: true
     unit_of_measurement: "RPM"
@@ -464,8 +347,36 @@ sensor:
     icon: mdi:fan
 
   - platform: pulse_counter
-    id: rack_fan_tach
-    name: "Rack Fan RPM"
+    id: rack_fan2_tach
+    name: "Rack Fan 2 RPM"
+    pin:
+      number: GPIO33
+      mode:
+        input: true
+        pullup: false
+    count_mode:
+      rising_edge: INCREMENT
+      falling_edge: DISABLE
+    update_interval: 1s
+    filters:
+      - multiply: 0.5
+      - throttle_with_priority:
+          timeout: 3s
+          value:
+            - nan
+            - 0
+      - clamp:
+          min_value: 0
+          max_value: 7000
+          ignore_out_of_range: true
+    force_update: true
+    unit_of_measurement: "RPM"
+    accuracy_decimals: 0
+    icon: mdi:fan
+
+  - platform: pulse_counter
+    id: rack_fan3_tach
+    name: "Rack Fan 3 RPM"
     pin:
       number: GPIO35
       mode:
@@ -492,36 +403,8 @@ sensor:
     icon: mdi:fan
 
   - platform: pulse_counter
-    id: cabinet_fan2_tach
-    name: "Cabinet Fan 2 RPM"
-    pin:
-      number: GPIO33
-      mode:
-        input: true
-        pullup: false
-    count_mode:
-      rising_edge: INCREMENT
-      falling_edge: DISABLE
-    update_interval: 1s
-    filters:
-      - multiply: 0.5
-      - throttle_with_priority:
-          timeout: 3s
-          value:
-            - nan
-            - 0
-      - clamp:
-          min_value: 0
-          max_value: 1500
-          ignore_out_of_range: true
-    force_update: true
-    unit_of_measurement: "RPM"
-    accuracy_decimals: 0
-    icon: mdi:fan
-
-  - platform: pulse_counter
-    id: rack_fan2_tach
-    name: "Rack Fan 2 RPM"
+    id: rack_fan4_tach
+    name: "Rack Fan 4 RPM"
     pin:
       number: GPIO36
       mode:
@@ -548,17 +431,6 @@ sensor:
     icon: mdi:fan
 
   - platform: template
-    id: cabinet_fan_runtime_sensor
-    name: "Cabinet Fan Runtime Hours"
-    lambda: |-
-      return id(cabinet_fan_runtime_hours);
-    update_interval: 60s
-    unit_of_measurement: "h"
-    accuracy_decimals: 1
-    icon: mdi:clock-outline
-    entity_category: "diagnostic"
-
-  - platform: template
     id: rack_fan_runtime_sensor
     name: "Rack Fan Runtime Hours"
     lambda: |-
@@ -570,31 +442,31 @@ sensor:
     entity_category: "diagnostic"
 
 script:
-  - id: cabinet_fan_safe_start
+  - id: rack_fan_safe_start
     mode: restart
     parameters:
       speed: int
     then:
       - lambda: |-
-          id(cabinet_fan_target_speed) = speed;
-          id(cabinet_fan_spin_up_active) = true;
+          id(rack_fan_target_speed) = speed;
+          id(rack_fan_spin_up_active) = true;
       - fan.turn_on:
-          id: cabinet_fan
-          speed: 10
+          id: rack_fan
+          speed: 100
       - logger.log:
-          format: "Cabinet fan starting with spin-up sequence, target: %d%%"
-          args: [ 'speed * 10' ]
+          format: "Rack fan starting with spin-up sequence, target: %d%%"
+          args: [ 'speed' ]
       - delay: 3s
       - lambda: |-
-          if (id(cabinet_fan_spin_up_active)) {
-            id(cabinet_fan_spin_up_active) = false;
-            auto call = id(cabinet_fan).make_call();
-            call.set_speed(id(cabinet_fan_target_speed));
+          if (id(rack_fan_spin_up_active)) {
+            id(rack_fan_spin_up_active) = false;
+            auto call = id(rack_fan).make_call();
+            call.set_speed(id(rack_fan_target_speed));
             call.perform();
           }
       - logger.log:
-          format: "Cabinet fan spin-up complete, running at %d%%"
-          args: [ 'id(cabinet_fan_target_speed) * 10' ]
+          format: "Rack fan spin-up complete, running at %d%%"
+          args: [ 'id(rack_fan_target_speed)' ]
 
   - id: download_fan_curves
     mode: restart
@@ -633,79 +505,47 @@ script:
     then:
       - lambda: |-
           ESP_LOGI("fan_curves", "Parsing JSON content, length: %d bytes", json_content.length());
-          
+
           json::parse_json(json_content, [](JsonObject root) -> bool {
             if (root["curves"]) {
               ESP_LOGI("fan_curves", "Found curves object in JSON");
-              
-              // Parse cabinet_fan curve
-              if (root["curves"]["cabinet_fan"]) {
-                ESP_LOGI("fan_curves", "Found cabinet_fan curve configuration");
-                JsonObject cabinet_curve = root["curves"]["cabinet_fan"];
-                
-                if (cabinet_curve["name"]) {
-                  ESP_LOGI("fan_curves", "Cabinet fan curve name: %s", cabinet_curve["name"].as<const char*>());
-                }
-                
-                if (cabinet_curve["points"]) {
-                  JsonArray points = cabinet_curve["points"];
-                  ESP_LOGI("fan_curves", "Cabinet fan curve has %d temperature points", points.size());
-                  
-                  // Clear existing curve data
-                  id(cabinet_fan_temps).clear();
-                  id(cabinet_fan_speeds).clear();
-                  
-                  // Store new curve points in vectors
-                  for (JsonObject point : points) {
-                    float temp = point["temp"];
-                    int speed = point["speed"];
-                    ESP_LOGI("fan_curves", "  Point: %.1f°C -> %d0%% speed", temp, speed);
-                    
-                    id(cabinet_fan_temps).push_back(temp);
-                    id(cabinet_fan_speeds).push_back(speed);
-                  }
-                  
-                  id(cabinet_curve_loaded) = true;
-                  ESP_LOGI("fan_curves", "Cabinet fan curve loaded with %d points", id(cabinet_fan_temps).size());
-                }
-              }
-              
+
               // Parse rack_fan curve
               if (root["curves"]["rack_fan"]) {
                 ESP_LOGI("fan_curves", "Found rack_fan curve configuration");
                 JsonObject rack_curve = root["curves"]["rack_fan"];
-                
+
                 if (rack_curve["name"]) {
                   ESP_LOGI("fan_curves", "Rack fan curve name: %s", rack_curve["name"].as<const char*>());
                 }
-                
+
                 if (rack_curve["points"]) {
                   JsonArray points = rack_curve["points"];
                   ESP_LOGI("fan_curves", "Rack fan curve has %d temperature points", points.size());
-                  
+
                   // Clear existing curve data
                   id(rack_fan_temps).clear();
                   id(rack_fan_speeds).clear();
-                  
+
                   // Store new curve points in vectors
                   for (JsonObject point : points) {
                     float temp = point["temp"];
                     int speed = point["speed"];
-                    ESP_LOGI("fan_curves", "  Point: %.1f°C -> %d0%% speed", temp, speed);
-                    
+                    ESP_LOGI("fan_curves", "  Point: %.1f°C -> %d%% speed", temp, speed);
+
                     id(rack_fan_temps).push_back(temp);
                     id(rack_fan_speeds).push_back(speed);
                   }
-                  
+
                   id(rack_curve_loaded) = true;
                   ESP_LOGI("fan_curves", "Rack fan curve loaded with %d points", id(rack_fan_temps).size());
                 }
               }
-              
+
               if (root["version"]) {
                 ESP_LOGI("fan_curves", "JSON version: %s", root["version"].as<const char*>());
               }
-              
+
               ESP_LOGI("fan_curves", "Fan curves parsed and stored in vectors successfully");
               id(fan_curves_downloaded) = true;
               return true;
@@ -719,88 +559,51 @@ script:
     mode: restart
     then:
       - lambda: |-
-          // Check if curves are loaded
-          if (!id(cabinet_curve_loaded) || !id(rack_curve_loaded)) {
-            ESP_LOGW("auto_control", "Fan curves not loaded, skipping auto control");
+          // Check if curve is loaded
+          if (!id(rack_curve_loaded)) {
+            ESP_LOGW("auto_control", "Fan curve not loaded, skipping auto control");
             return;
           }
-          
-          // Get current temperatures
-          float cabinet_temperature = id(cabinet_temp)->state;
-          float rack_temperature = id(rack_temp)->state;
-          
-          // Calculate cabinet fan speed using linear interpolation
-          int cabinet_speed = 0; // Default speed - fans off
-          if (id(cabinet_fan_temps).size() >= 2) {
-            for (size_t i = 0; i < id(cabinet_fan_temps).size() - 1; i++) {
-              float temp1 = id(cabinet_fan_temps)[i];
-              float temp2 = id(cabinet_fan_temps)[i + 1];
-              int speed1 = id(cabinet_fan_speeds)[i];
-              int speed2 = id(cabinet_fan_speeds)[i + 1];
-              
-              if (cabinet_temperature >= temp1 && cabinet_temperature <= temp2) {
-                // Linear interpolation
-                float ratio = (cabinet_temperature - temp1) / (temp2 - temp1);
-                cabinet_speed = speed1 + (int)((speed2 - speed1) * ratio);
-                break;
-              } else if (cabinet_temperature < temp1 && i == 0) {
-                // Below minimum temperature - turn off fans
-                cabinet_speed = 0;
-                break;
-              } else if (cabinet_temperature > temp2 && i == id(cabinet_fan_temps).size() - 2) {
-                // Above maximum temperature
-                cabinet_speed = speed2;
-                break;
-              }
-            }
-          }
-          
-          // Calculate rack fan speed using linear interpolation
-          int rack_speed = 0; // Default speed - fans off
+
+          // Get current temperatures and compute EMA of max(t1, t2)
+          float t1 = id(temp_sensor_1)->state;
+          float t2 = id(temp_sensor_2)->state;
+          float max_temp = (t1 > t2) ? t1 : t2;
+          if (id(ema_temp) == 0.0f) id(ema_temp) = max_temp;
+          id(ema_temp) = 0.2f * max_temp + 0.8f * id(ema_temp);
+          float temperature = id(ema_temp);
+
+          // Calculate fan speed using linear interpolation
+          int rack_speed = 0;
           if (id(rack_fan_temps).size() >= 2) {
             for (size_t i = 0; i < id(rack_fan_temps).size() - 1; i++) {
               float temp1 = id(rack_fan_temps)[i];
               float temp2 = id(rack_fan_temps)[i + 1];
               int speed1 = id(rack_fan_speeds)[i];
               int speed2 = id(rack_fan_speeds)[i + 1];
-              
-              if (rack_temperature >= temp1 && rack_temperature <= temp2) {
-                // Linear interpolation
-                float ratio = (rack_temperature - temp1) / (temp2 - temp1);
+
+              if (temperature >= temp1 && temperature <= temp2) {
+                float ratio = (temperature - temp1) / (temp2 - temp1);
                 rack_speed = speed1 + (int)((speed2 - speed1) * ratio);
                 break;
-              } else if (rack_temperature < temp1 && i == 0) {
-                // Below minimum temperature - turn off fans
+              } else if (temperature < temp1 && i == 0) {
                 rack_speed = 0;
                 break;
-              } else if (rack_temperature > temp2 && i == id(rack_fan_temps).size() - 2) {
-                // Above maximum temperature
+              } else if (temperature > temp2 && i == id(rack_fan_temps).size() - 2) {
                 rack_speed = speed2;
                 break;
               }
             }
           }
-          
-          // Ensure speeds are within valid range (0-10)
-          if (cabinet_speed < 0) cabinet_speed = 0;
-          if (cabinet_speed > 10) cabinet_speed = 10;
+
+          // Clamp to valid range (0-100)
           if (rack_speed < 0) rack_speed = 0;
-          if (rack_speed > 10) rack_speed = 10;
-          
-          ESP_LOGI("auto_control", "Temperatures: Cabinet=%.1f°C, Rack=%.1f°C", cabinet_temperature, rack_temperature);
-          ESP_LOGI("auto_control", "Calculated speeds: Cabinet=%d, Rack=%d", cabinet_speed, rack_speed);
-          
-          // Set cabinet fan speed
-          auto cabinet_call = id(cabinet_fan).make_call();
-          if (cabinet_speed == 0) {
-            cabinet_call.set_state(false);
-          } else {
-            cabinet_call.set_state(true);
-            cabinet_call.set_speed(cabinet_speed);
-          }
-          cabinet_call.perform();
-          
-          // Set rack fan speed
+          if (rack_speed > 100) rack_speed = 100;
+
+          ESP_LOGI("auto_control", "Temps: T1=%.1f°C T2=%.1f°C EMA=%.1f°C -> speed=%d%%",
+                   t1, t2, temperature, rack_speed);
+
+          // Set fan speed
           auto rack_call = id(rack_fan).make_call();
           if (rack_speed == 0) {
             rack_call.set_state(false);
@@ -831,20 +634,9 @@ button:
     on_press:
       then:
         - lambda: |-
-            id(cabinet_fan_runtime_hours) = 0.0;
             id(rack_fan_runtime_hours) = 0.0;
         - logger.log: "Fan runtime counter reset to 0 hours"
-        - component.update: cabinet_fan_runtime_sensor
         - component.update: rack_fan_runtime_sensor
-
-  - platform: template
-    id: check_for_updates
-    name: "Check for Updates"
-    icon: mdi:update
-    entity_category: "config"
-    on_press:
-      then:
-        - component.update: update_http_request
 
   - platform: template
     id: download_curves_button
@@ -900,26 +692,10 @@ switch:
     optimistic: true
     restore_mode: RESTORE_DEFAULT_OFF
     icon: "mdi:fan-auto"
-    # entity_category: config
     turn_on_action:
       - logger.log: "Auto mode enabled - fans will be controlled automatically"
     turn_off_action:
       - logger.log: "Auto mode disabled - manual fan control"
-
-  - platform: template
-    name: Beta Firmware
-    optimistic: true
-    restore_mode: RESTORE_DEFAULT_OFF
-    icon: "mdi:test-tube"
-    entity_category: config
-    on_turn_on:
-      - logger.log: "OTA updates set to use Beta firmware"
-      - lambda: id(update_http_request).set_source_url("$BETA_MANIFEST_URL");
-      - component.update: update_http_request
-    on_turn_off:
-      - logger.log: "OTA updates set to use Production firmware"
-      - lambda: id(update_http_request).set_source_url("$PROD_MANIFEST_URL");
-      - component.update: update_http_request
 
 power_supply:
   - id: power_supply_fan
@@ -933,13 +709,6 @@ power_supply:
     keep_on_time: 20ms
 
 output:
-  - platform: ledc
-    id: cabinet_fan_output
-    pin: GPIO5
-    frequency: 19531
-    min_power: 0.75
-    zero_means_zero: true
-
   - platform: ledc
     id: rack_fan_output
     pin: GPIO17
@@ -959,29 +728,22 @@ output:
 
 fan:
   - platform: speed
-    id: cabinet_fan
-    output: cabinet_fan_output
-    name: "Cabinet Fan"
-    restore_mode: RESTORE_DEFAULT_OFF
-    speed_count: 10
-    on_turn_on:
-      then:
-        - lambda: |-
-            int target_speed = id(cabinet_fan).speed > 0 ? id(cabinet_fan).speed : 1;
-            id(cabinet_fan_safe_start)->execute(target_speed);
-    on_speed_set:
-      then:
-        - lambda: |-
-            if (!id(cabinet_fan_spin_up_active)) {
-              id(cabinet_fan_target_speed) = x;
-            }
-
-  - platform: speed
     id: rack_fan
     output: rack_fan_output
     name: "Rack Fan"
     restore_mode: RESTORE_DEFAULT_OFF
-    speed_count: 10
+    speed_count: 100
+    on_turn_on:
+      then:
+        - lambda: |-
+            int target_speed = id(rack_fan).speed > 0 ? id(rack_fan).speed : 1;
+            id(rack_fan_safe_start)->execute(target_speed);
+    on_speed_set:
+      then:
+        - lambda: |-
+            if (!id(rack_fan_spin_up_active)) {
+              id(rack_fan_target_speed) = x;
+            }
 
 light:
   - platform: binary
@@ -1009,66 +771,58 @@ display:
     pages:
       - id: normal_page
         lambda: |-
-          // Line 1: Headers (0-12px)
-          it.print(0, 0, id(font2), "CAB");
-          it.print(64, 0, id(font2), "RACK");
+          // Line 1: Fan 1 & 2 RPM (0-12px)
+          it.printf(0, 0, id(font3), "F1:");
+          it.printf(18, 0, id(font2), "%4.0f", id(rack_fan1_tach).state);
+          it.printf(64, 0, id(font3), "F2:");
+          it.printf(82, 0, id(font2), "%4.0f", id(rack_fan2_tach).state);
 
-          // Line 2: Fan 1 RPM (13-25px)
-          it.printf(0, 13, id(font2), "%4.0f", id(cabinet_fan_tach).state);
-          it.print(32, 13, id(font3), "RPM");
-          it.printf(64, 13, id(font2), "%4.0f", id(rack_fan_tach).state);
-          it.print(96, 13, id(font3), "RPM");
+          // Line 2: Fan 3 & 4 RPM (13-25px)
+          it.printf(0, 13, id(font3), "F3:");
+          it.printf(18, 13, id(font2), "%4.0f", id(rack_fan3_tach).state);
+          it.printf(64, 13, id(font3), "F4:");
+          it.printf(82, 13, id(font2), "%4.0f", id(rack_fan4_tach).state);
 
-          // Line 3: Fan 2 RPM (26-38px)
-          it.printf(0, 26, id(font2), "%4.0f", id(cabinet_fan2_tach).state);
-          it.print(32, 26, id(font3), "RPM");
-          it.printf(64, 26, id(font2), "%4.0f", id(rack_fan2_tach).state);
-          it.print(96, 26, id(font3), "RPM");
+          // Line 3: PWM percentage (26-38px)
+          float rack_pwm = id(rack_fan).state ? (float)id(rack_fan).speed : 0.0f;
+          it.printf(0, 26, id(font2), "PWM: %3.0f%%", rack_pwm);
 
-          // Line 4: PWM percentages (39-51px) - show 0% if fan is off
-          float cabinet_pwm = id(cabinet_fan).state ? id(cabinet_fan).speed * 10.0 : 0.0;
-          float rack_pwm = id(rack_fan).state ? id(rack_fan).speed * 10.0 : 0.0;
-          it.printf(0, 39, id(font2), "%3.0f%%", cabinet_pwm);
-          it.print(32, 39, id(font3), "PWM");
-          it.printf(64, 39, id(font2), "%3.0f%%", rack_pwm);
-          it.print(96, 39, id(font3), "PWM");
+          // Line 4: Temperatures (39-51px)
+          it.printf(0, 39, id(font3), "T1:");
+          it.printf(18, 39, id(font2), "%4.1f", id(temp_sensor_1).state);
+          it.printf(64, 39, id(font3), "T2:");
+          it.printf(82, 39, id(font2), "%4.1f", id(temp_sensor_2).state);
 
-          // Line 5: Temperatures (52-64px)
-          it.printf(0, 52, id(font2), "%4.1f", id(cabinet_temp).state);
-          it.print(32, 52, id(font3), "°C");
-          it.printf(64, 52, id(font2), "%4.1f", id(rack_temp).state);
-          it.print(96, 52, id(font3), "°C");
+          // Line 5: EMA temperature (52-64px)
+          it.printf(0, 52, id(font3), "EMA:");
+          it.printf(24, 52, id(font2), "%4.1f", id(ema_temp));
+          it.print(56, 52, id(font3), "°C");
 
       - id: error_page
         lambda: |-
           // Line 1: Error header (0-16px)
           it.print(0, 0, id(font1), "FAN ERROR!");
-          
-          int line_y = 17; // Start position for error messages
-          
-          // Calculate required error cycles based on failure detection time
+
+          int line_y = 17;
+
           int required_cycles = (int)(id(failure_detection_after).state / 5.0);
           if (required_cycles < 1) required_cycles = 1;
-          
-          // Check each fan and display only those with errors
-          if (id(cabinet_fan_commanded) && id(cabinet_fan_error_count) >= required_cycles) {
-            if (id(cabinet_fan_tach).state == 0) {
-              it.print(0, line_y, id(font2), "Cabinet Fan 1 FAIL");
-              line_y += 13;
-            }
-            if (id(cabinet_fan2_tach).state == 0) {
-              it.print(0, line_y, id(font2), "Cabinet Fan 2 FAIL");
-              line_y += 13;
-            }
-          }
-          
+
           if (id(rack_fan_commanded) && id(rack_fan_error_count) >= required_cycles) {
-            if (id(rack_fan_tach).state == 0) {
+            if (id(rack_fan1_tach).state == 0) {
               it.print(0, line_y, id(font2), "Rack Fan 1 FAIL");
               line_y += 13;
             }
             if (id(rack_fan2_tach).state == 0) {
               it.print(0, line_y, id(font2), "Rack Fan 2 FAIL");
+              line_y += 13;
+            }
+            if (id(rack_fan3_tach).state == 0) {
+              it.print(0, line_y, id(font2), "Rack Fan 3 FAIL");
+              line_y += 13;
+            }
+            if (id(rack_fan4_tach).state == 0) {
+              it.print(0, line_y, id(font2), "Rack Fan 4 FAIL");
               line_y += 13;
             }
           }

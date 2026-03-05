@@ -102,3 +102,4 @@ celerybeat-schedule.*
 
 # Windows
 Thumbs.db
+.claude

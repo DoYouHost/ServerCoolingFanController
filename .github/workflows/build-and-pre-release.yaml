@@ -194,7 +194,7 @@ jobs:
     with:
       files: |
         serverCoolingFanController.yaml
-      esphome-version: "2025.8.2"
+      esphome-version: "2026.1.5"
       combined-name: ServerCoolingFanController
       release-version: ${{ needs.generate-version.outputs.version }}
       release-summary: ${{ needs.generate-version.outputs.summary }}
