@@ -4,7 +4,7 @@
     "rack_fan": {
       "name": "Rack Fan Curve",
       "points": [
-        {"temp": 25.0, "speed": 10},
+        {"temp": 20.0, "speed": 10},
         {"temp": 30.0, "speed": 30},
         {"temp": 35.0, "speed": 50},
         {"temp": 40.0, "speed": 70},

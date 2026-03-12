@@ -12,7 +12,7 @@ substitutions:
 esphome:
   name: server-cooling-fan
   friendly_name: "Server Cooling Fan"
-  comment: "WT32-ETH01 fan controller with temperature sensors"
+  comment: "T-ETH-Lite ESP32-S3 fan controller with temperature sensors"
   name_add_mac_suffix: true
   project:
     name: "DoYouHost.ServerCoolingFanController"
@@ -28,12 +28,27 @@ esphome:
             int restored_speed = id(rack_fan).speed > 0 ? id(rack_fan).speed : 1;
             id(rack_fan_safe_start)->execute(restored_speed);
           }
+          // Stop animation but keep icon visible by freezing on frame 0
+          lv_animimg_set_repeat_count(id(fan_anim), 0);
+          lv_anim_del(id(fan_anim), NULL);
+          // Freeze on frame 0 using ESPHome image descriptor
+          static const void * fan_stopped_frames[] = { id(fan_frame_00)->get_lv_img_dsc() };
+          lv_animimg_set_src(id(fan_anim), fan_stopped_frames, 1);
+          lv_animimg_start(id(fan_anim));
 
 esp32:
-  board: esp32dev
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 16MB
   framework:
     type: esp-idf
     version: recommended
+    sdkconfig_options:
+      CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY: y
+
+psram:
+  mode: octal
+  speed: 80MHz
 
 packages:
   esphome_templates:
@@ -42,6 +57,7 @@ packages:
     files:
       - basic.yaml
       - debug.yaml
+      - debug_psram.yaml
       - ethInfo.yaml
       - webServer3.yaml
       - updateBetaProdStaging.yaml
@@ -87,14 +103,13 @@ globals:
     initial_value: '0.0'
 
 ethernet:
-  type: LAN8720
-  mdc_pin: GPIO23
-  mdio_pin: GPIO18
-  clk:
-    pin: GPIO0
-    mode: CLK_EXT_IN
-  phy_addr: 1
-  power_pin: GPIO16
+  type: W5500
+  clk_pin: GPIO10
+  mosi_pin: GPIO12
+  miso_pin: GPIO11
+  cs_pin: GPIO9
+  interrupt_pin: GPIO13
+  reset_pin: GPIO14
 
 debug:
   update_interval: 5s
@@ -103,6 +118,8 @@ logger:
   logs:
     pulse_counter: INFO
     sensor: INFO
+    dallas.temp.sensor: INFO
+    text_sensor: INFO
 
 safe_mode:
 
@@ -120,16 +137,12 @@ one_wire:
   - platform: gpio
     pin: GPIO4
 
-i2c:
-  sda: GPIO14
-  scl: GPIO15
-  scan: true
-  id: bus_a
 
-pcf8574:
-  - id: pcf8574_hub
-    address: 0x20
-    pcf8575: false
+spi:
+  - id: display_spi
+    clk_pin: GPIO15
+    mosi_pin: GPIO16
+    interface: spi3
 
 time:
   - platform: homeassistant
@@ -159,6 +172,82 @@ interval:
           } else {
             id(rack_fan_error_count) = 0;
           }
+
+  - interval: 3s
+    then:
+      - lvgl.label.update:
+          id: lbl_fan1
+          text:
+            format: "F1: %.0f rpm"
+            args: ['id(rack_fan1_tach).state']
+      - lvgl.label.update:
+          id: lbl_fan2
+          text:
+            format: "F2: %.0f rpm"
+            args: ['id(rack_fan2_tach).state']
+      - lvgl.label.update:
+          id: lbl_fan3
+          text:
+            format: "F3: %.0f rpm"
+            args: ['id(rack_fan3_tach).state']
+      - lvgl.label.update:
+          id: lbl_fan4
+          text:
+            format: "F4: %.0f rpm"
+            args: ['id(rack_fan4_tach).state']
+      - lvgl.label.update:
+          id: lbl_pwm
+          text:
+            format: "%d%%"
+            args: ['id(rack_fan).state ? id(rack_fan).speed : 0']
+      - lvgl.bar.update:
+          id: pwm_bar
+          value: !lambda |-
+            return id(rack_fan).state ? id(rack_fan).speed : 0;
+      - lambda: |-
+          if (id(rack_fan).state && id(rack_fan).speed > 0) {
+            lv_animimg_set_repeat_count(id(fan_anim), LV_ANIM_REPEAT_INFINITE);
+            lv_animimg_start(id(fan_anim));
+          } else {
+            lv_animimg_set_repeat_count(id(fan_anim), 0);
+            lv_anim_del(id(fan_anim), NULL);
+            // Freeze on frame 0 so icon stays visible
+            static const void * fan_stopped_frames[] = { id(fan_frame_00)->get_lv_img_dsc() };
+            lv_animimg_set_src(id(fan_anim), fan_stopped_frames, 1);
+            lv_animimg_start(id(fan_anim));
+          }
+      - lvgl.label.update:
+          id: lbl_t1
+          text:
+            format: "T1: %.1f°C"
+            args: ['id(temp_sensor_1).state']
+      - lvgl.label.update:
+          id: lbl_t2
+          text:
+            format: "T2: %.1f°C"
+            args: ['id(temp_sensor_2).state']
+      - lvgl.label.update:
+          id: lbl_ema
+          text:
+            format: "EMA %.1f°C"
+            args: ['id(temperature_ema).state']
+      - lvgl.label.update:
+          id: lbl_status
+          text: !lambda |-
+            if (id(manual_override_button).state) return "OVERRIDE";
+            if (id(auto_mode_switch).state) return "AUTO";
+            return "MANUAL";
+      - lambda: |-
+          // Update status label color
+          lv_color_t color;
+          if (id(manual_override_button).state) {
+            color = lv_color_hex(0xFFAA00);  // warn
+          } else if (id(auto_mode_switch).state) {
+            color = lv_color_hex(0x00CC66);  // ok
+          } else {
+            color = lv_color_hex(0xAAAAAA);  // dim
+          }
+          lv_obj_set_style_text_color(id(lbl_status), color, LV_PART_MAIN);
 
   - interval: 30s
     then:
@@ -242,7 +331,10 @@ binary_sensor:
     id: manual_override_button
     name: "Manual Override Button"
     pin:
-      number: GPIO39
+      number: GPIO3
+      mode:
+        input: true
+        pullup: true
       inverted: true
     filters:
       - delayed_on: 50ms
@@ -281,13 +373,20 @@ binary_sensor:
       then:
         - lambda: |-
             if (x) {
-              id(my_display).show_page(id(error_page));
               id(error_led).turn_on().set_effect("Error Strobe").perform();
             } else {
-              id(my_display).show_page(id(normal_page));
               id(error_led).turn_off().perform();
             }
-        - component.update: my_display
+        - if:
+            condition:
+              lambda: return x;
+            then:
+              - lvgl.label.update:
+                  id: lbl_error_detail
+                  text: !lambda return id(fan_error_explanation).state;
+              - lvgl.page.show: error_page
+            else:
+              - lvgl.page.show: normal_page
 
 sensor:
   - platform: dallas_temp
@@ -322,10 +421,10 @@ sensor:
     id: rack_fan1_tach
     name: "Rack Fan 1 RPM"
     pin:
-      number: GPIO32
+      number: GPIO38
       mode:
         input: true
-        pullup: false
+        pullup: true
     count_mode:
       rising_edge: INCREMENT
       falling_edge: DISABLE
@@ -350,10 +449,10 @@ sensor:
     id: rack_fan2_tach
     name: "Rack Fan 2 RPM"
     pin:
-      number: GPIO33
+      number: GPIO39
       mode:
         input: true
-        pullup: false
+        pullup: true
     count_mode:
       rising_edge: INCREMENT
       falling_edge: DISABLE
@@ -378,10 +477,10 @@ sensor:
     id: rack_fan3_tach
     name: "Rack Fan 3 RPM"
     pin:
-      number: GPIO35
+      number: GPIO40
       mode:
         input: true
-        pullup: false
+        pullup: true
     count_mode:
       rising_edge: INCREMENT
       falling_edge: DISABLE
@@ -406,10 +505,10 @@ sensor:
     id: rack_fan4_tach
     name: "Rack Fan 4 RPM"
     pin:
-      number: GPIO36
+      number: GPIO41
       mode:
         input: true
-        pullup: false
+        pullup: true
     count_mode:
       rising_edge: INCREMENT
       falling_edge: DISABLE
@@ -441,6 +540,36 @@ sensor:
     icon: mdi:clock-outline
     entity_category: "diagnostic"
 
+  - platform: template
+    id: temperature_ema
+    name: "Temperature EMA"
+    lambda: |-
+      float t1 = id(temp_sensor_1)->state;
+      float t2 = id(temp_sensor_2)->state;
+
+      // Skip update if both sensors are NaN
+      bool t1_valid = !isnan(t1);
+      bool t2_valid = !isnan(t2);
+      if (!t1_valid && !t2_valid) return id(ema_temp) == 0.0f ? NAN : id(ema_temp);
+
+      float max_temp;
+      if (t1_valid && t2_valid) max_temp = (t1 > t2) ? t1 : t2;
+      else if (t1_valid) max_temp = t1;
+      else max_temp = t2;
+
+      if (id(ema_temp) == 0.0f || isnan(id(ema_temp))) {
+        id(ema_temp) = max_temp;
+      }
+      id(ema_temp) = 0.2f * max_temp + 0.8f * id(ema_temp);
+
+      return id(ema_temp);
+    update_interval: 5s
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    icon: mdi:thermometer
+    filters:
+      - round: 1
+
 script:
   - id: rack_fan_safe_start
     mode: restart
@@ -456,7 +585,7 @@ script:
       - logger.log:
           format: "Rack fan starting with spin-up sequence, target: %d%%"
           args: [ 'speed' ]
-      - delay: 3s
+      - delay: 200ms
       - lambda: |-
           if (id(rack_fan_spin_up_active)) {
             id(rack_fan_spin_up_active) = false;
@@ -565,13 +694,10 @@ script:
             return;
           }
 
-          // Get current temperatures and compute EMA of max(t1, t2)
+          // Get EMA temperature from template sensor
+          float temperature = id(temperature_ema)->state;
           float t1 = id(temp_sensor_1)->state;
           float t2 = id(temp_sensor_2)->state;
-          float max_temp = (t1 > t2) ? t1 : t2;
-          if (id(ema_temp) == 0.0f) id(ema_temp) = max_temp;
-          id(ema_temp) = 0.2f * max_temp + 0.8f * id(ema_temp);
-          float temperature = id(ema_temp);
 
           // Calculate fan speed using linear interpolation
           int rack_speed = 0;
@@ -697,34 +823,25 @@ switch:
     turn_off_action:
       - logger.log: "Auto mode disabled - manual fan control"
 
-power_supply:
-  - id: power_supply_fan
-    pin:
-      pcf8574: pcf8574_hub
-      number: 1
-      mode:
-        output: true
-      inverted: false
-    enable_time: 20ms
-    keep_on_time: 20ms
-
 output:
   - platform: ledc
     id: rack_fan_output
-    pin: GPIO17
+    pin: GPIO21
     frequency: 19531
-    min_power: 0.0
+    min_power: 0.3
     zero_means_zero: true
-    power_supply: power_supply_fan
+
+  - platform: ledc
+    id: display_backlight
+    pin: GPIO8
+    frequency: 1000
+    inverted: true
 
   - platform: gpio
     id: error_led_output
     pin:
-      pcf8574: pcf8574_hub
-      number: 2
-      mode:
-        output: true
-      inverted: true
+      number: GPIO48
+      inverted: false
 
 fan:
   - platform: speed
@@ -746,6 +863,13 @@ fan:
             }
 
 light:
+  - platform: monochromatic
+    id: display_backlight_light
+    name: "Display Backlight"
+    output: display_backlight
+    restore_mode: RESTORE_DEFAULT_OFF
+    default_transition_length: 0s
+
   - platform: binary
     id: error_led
     internal: true
@@ -763,85 +887,282 @@ light:
               duration: 200ms
 
 display:
-  - platform: ssd1306_i2c
-    model: "SSD1306 128x64"
-    address: 0x3C
+  - platform: mipi_spi
+    model: ST7789V
     id: my_display
-    update_interval: 3s
-    pages:
-      - id: normal_page
-        lambda: |-
-          // Line 1: Fan 1 & 2 RPM (0-12px)
-          it.printf(0, 0, id(font3), "F1:");
-          it.printf(18, 0, id(font2), "%4.0f", id(rack_fan1_tach).state);
-          it.printf(64, 0, id(font3), "F2:");
-          it.printf(82, 0, id(font2), "%4.0f", id(rack_fan2_tach).state);
-
-          // Line 2: Fan 3 & 4 RPM (13-25px)
-          it.printf(0, 13, id(font3), "F3:");
-          it.printf(18, 13, id(font2), "%4.0f", id(rack_fan3_tach).state);
-          it.printf(64, 13, id(font3), "F4:");
-          it.printf(82, 13, id(font2), "%4.0f", id(rack_fan4_tach).state);
-
-          // Line 3: PWM percentage (26-38px)
-          float rack_pwm = id(rack_fan).state ? (float)id(rack_fan).speed : 0.0f;
-          it.printf(0, 26, id(font2), "PWM: %3.0f%%", rack_pwm);
-
-          // Line 4: Temperatures (39-51px)
-          it.printf(0, 39, id(font3), "T1:");
-          it.printf(18, 39, id(font2), "%4.1f", id(temp_sensor_1).state);
-          it.printf(64, 39, id(font3), "T2:");
-          it.printf(82, 39, id(font2), "%4.1f", id(temp_sensor_2).state);
-
-          // Line 5: EMA temperature (52-64px)
-          it.printf(0, 52, id(font3), "EMA:");
-          it.printf(24, 52, id(font2), "%4.1f", id(ema_temp));
-          it.print(56, 52, id(font3), "°C");
-
-      - id: error_page
-        lambda: |-
-          // Line 1: Error header (0-16px)
-          it.print(0, 0, id(font1), "FAN ERROR!");
-
-          int line_y = 17;
-
-          int required_cycles = (int)(id(failure_detection_after).state / 5.0);
-          if (required_cycles < 1) required_cycles = 1;
-
-          if (id(rack_fan_commanded) && id(rack_fan_error_count) >= required_cycles) {
-            if (id(rack_fan1_tach).state == 0) {
-              it.print(0, line_y, id(font2), "Rack Fan 1 FAIL");
-              line_y += 13;
-            }
-            if (id(rack_fan2_tach).state == 0) {
-              it.print(0, line_y, id(font2), "Rack Fan 2 FAIL");
-              line_y += 13;
-            }
-            if (id(rack_fan3_tach).state == 0) {
-              it.print(0, line_y, id(font2), "Rack Fan 3 FAIL");
-              line_y += 13;
-            }
-            if (id(rack_fan4_tach).state == 0) {
-              it.print(0, line_y, id(font2), "Rack Fan 4 FAIL");
-              line_y += 13;
-            }
-          }
+    spi_id: display_spi
+    cs_pin: GPIO47
+    dc_pin: GPIO17
+    reset_pin: GPIO18
+    dimensions:
+      width: 284
+      height: 76
+      offset_width: 18
+      offset_height: 82
+    rotation: 270
+    color_order: bgr
+    data_rate: 40MHz
+    auto_clear_enabled: false
+    update_interval: never
 
 font:
   - file: "gfonts://Source Code Pro"
-    id: font1
-    size: 16
+    id: font_large
+    size: 18
+    bpp: 4
+    extras:
+      - glyphs: "°"
+        file: "gfonts://Source Code Pro"
   - file: "gfonts://Source Code Pro"
-    id: font2
-    size: 12
+    id: font_medium
+    size: 14
+    bpp: 4
+    extras:
+      - glyphs: "°"
+        file: "gfonts://Source Code Pro"
   - file: "gfonts://Source Code Pro"
-    id: font3
-    size: 10
+    id: font_small
+    size: 11
+    bpp: 4
+    extras:
+      - glyphs: "°"
+        file: "gfonts://Source Code Pro"
+
+image:
+  - file: "images/fan_anim/fan_00.png"
+    id: fan_frame_00
+    type: RGB565
+    transparency: alpha_channel
+  - file: "images/fan_anim/fan_01.png"
+    id: fan_frame_01
+    type: RGB565
+    transparency: alpha_channel
+  - file: "images/fan_anim/fan_02.png"
+    id: fan_frame_02
+    type: RGB565
+    transparency: alpha_channel
+  - file: "images/fan_anim/fan_03.png"
+    id: fan_frame_03
+    type: RGB565
+    transparency: alpha_channel
+  - file: "images/fan_anim/fan_04.png"
+    id: fan_frame_04
+    type: RGB565
+    transparency: alpha_channel
+  - file: "images/fan_anim/fan_05.png"
+    id: fan_frame_05
+    type: RGB565
+    transparency: alpha_channel
+  - file: "images/fan_anim/fan_06.png"
+    id: fan_frame_06
+    type: RGB565
+    transparency: alpha_channel
+  - file: "images/fan_anim/fan_07.png"
+    id: fan_frame_07
+    type: RGB565
+    transparency: alpha_channel
+  - file: "images/fan_anim/fan_08.png"
+    id: fan_frame_08
+    type: RGB565
+    transparency: alpha_channel
+  - file: "images/fan_anim/fan_09.png"
+    id: fan_frame_09
+    type: RGB565
+    transparency: alpha_channel
+  - file: "images/fan_anim/fan_10.png"
+    id: fan_frame_10
+    type: RGB565
+    transparency: alpha_channel
+  - file: "images/fan_anim/fan_11.png"
+    id: fan_frame_11
+    type: RGB565
+    transparency: alpha_channel
+
+color:
+  - id: color_bg
+    hex: "1A1A2E"
+  - id: color_panel
+    hex: "16213E"
+  - id: color_primary
+    hex: "0F3460"
+  - id: color_accent
+    hex: "00AAFF"
+  - id: color_ok
+    hex: "00CC66"
+  - id: color_warn
+    hex: "FFAA00"
+  - id: color_error
+    hex: "FF4444"
+  - id: color_text
+    hex: "FFFFFF"
+  - id: color_text_dim
+    hex: "AAAAAA"
+
+lvgl:
+  displays:
+    - my_display
+  color_depth: 16
+  buffer_size: 100%
+  disp_bg_color: color_bg
+  default_font: font_small
+
+  style_definitions:
+    - id: style_panel
+      bg_color: color_panel
+      radius: 4
+      pad_all: 3
+      border_width: 0
+
+    - id: style_bar_bg
+      bg_color: color_primary
+      radius: 2
+
+    - id: style_bar_ok
+      bg_color: color_ok
+      radius: 2
+
+    - id: style_bar_warn
+      bg_color: color_warn
+      radius: 2
+
+  pages:
+    # ── Normal page ──────────────────────────────────────────────
+    - id: normal_page
+      bg_color: color_bg
+      layout:
+        type: FLEX
+        flex_flow: ROW
+        pad_column: 3
+      pad_all: 3
+      widgets:
+        # Left panel: Fan icon + PWM
+        - obj:
+            styles: style_panel
+            width: 72
+            height: 70
+            scrollbar_mode: "OFF"
+            layout:
+              type: FLEX
+              flex_flow: COLUMN
+              flex_align_main: CENTER
+              flex_align_cross: CENTER
+              pad_row: 0
+            widgets:
+              - animimg:
+                  id: fan_anim
+                  src:
+                    - fan_frame_00
+                    - fan_frame_01
+                    - fan_frame_02
+                    - fan_frame_03
+                    - fan_frame_04
+                    - fan_frame_05
+                    - fan_frame_06
+                    - fan_frame_07
+                    - fan_frame_08
+                    - fan_frame_09
+                    - fan_frame_10
+                    - fan_frame_11
+                  duration: 1000ms
+                  auto_start: false
+                  repeat_count: 0
+              - label:
+                  id: lbl_pwm
+                  text: "--%"
+                  text_font: font_medium
+                  text_color: color_accent
+              - bar:
+                  id: pwm_bar
+                  width: 64
+                  height: 4
+                  value: 0
+                  min_value: 0
+                  max_value: 100
+                  styles: style_bar_bg
+                  indicator:
+                    styles: style_bar_ok
+
+        # Center panel: Fan RPMs
+        - obj:
+            styles: style_panel
+            width: 105
+            height: 70
+            layout:
+              type: FLEX
+              flex_flow: COLUMN
+              pad_row: 1
+            widgets:
+              - label:
+                  id: lbl_fan1
+                  text: "F1: -- rpm"
+                  text_font: font_small
+                  text_color: color_text
+              - label:
+                  id: lbl_fan2
+                  text: "F2: -- rpm"
+                  text_font: font_small
+                  text_color: color_text
+              - label:
+                  id: lbl_fan3
+                  text: "F3: -- rpm"
+                  text_font: font_small
+                  text_color: color_text
+              - label:
+                  id: lbl_fan4
+                  text: "F4: -- rpm"
+                  text_font: font_small
+                  text_color: color_text
+
+        # Right panel: Temps + EMA + Status
+        - obj:
+            styles: style_panel
+            width: 95
+            height: 70
+            layout:
+              type: FLEX
+              flex_flow: COLUMN
+              pad_row: 0
+            widgets:
+              - label:
+                  id: lbl_t1
+                  text: "T1: --.-°C"
+                  text_font: font_small
+                  text_color: color_text
+              - label:
+                  id: lbl_t2
+                  text: "T2: --.-°C"
+                  text_font: font_small
+                  text_color: color_text
+              - label:
+                  id: lbl_ema
+                  text: "EMA --.-°C"
+                  text_font: font_small
+                  text_color: color_accent
+              - label:
+                  id: lbl_status
+                  text: "MANUAL"
+                  text_font: font_small
+                  text_color: color_text_dim
+
+    # ── Error page ───────────────────────────────────────────────
+    - id: error_page
+      bg_color: color_bg
+      pad_all: 3
+      layout:
+        type: FLEX
+        flex_flow: COLUMN
+        pad_row: 2
+      widgets:
+        - label:
+            id: lbl_error_title
+            text: "FAN ERROR!"
+            text_font: font_large
+            text_color: color_error
+        - label:
+            id: lbl_error_detail
+            text: ""
+            text_font: font_medium
+            text_color: color_error
 
 status_led:
-  pin:
-    pcf8574: pcf8574_hub
-    number: 0
-    mode:
-      output: true
-    inverted: false
+  pin: GPIO46

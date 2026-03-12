@@ -32,6 +32,7 @@
 |------|----------------|--------------------------------|
 | 15   | SPI2 CLK       | Display clock                  |
 | 16   | SPI2 MOSI      | Display data                   |
+| 47   | Display CS      | Chip select                    |
 | 17   | Display DC      | Data/Command select            |
 | 18   | Display RST     | Reset (active low)             |
 | 8    | Display BL      | Backlight (PWM capable)        |
@@ -57,7 +58,8 @@
 | GPIO | Function       | Notes                          |
 |------|----------------|--------------------------------|
 | 3    | User button     | Input, internal pull-up        |
-| 48   | Status LED      | Output                         |
+| 46   | Status LED      | ESPHome status blink           |
+| 48   | Error LED       | Fan error strobe               |
 
 ### Reserved for future I2C
 
@@ -73,9 +75,6 @@
 | GPIO | Notes                              |
 |------|------------------------------------|
 | 0    | Boot button — use with caution     |
-| 45   | Free                               |
-| 46   | Free                               |
-| 47   | Free                               |
 
 ---
 
@@ -87,12 +86,14 @@
 - **Display DC/RST/BL (GPIO17, 18, 8):** Simple output pins, grouped near
   SPI2 pins for clean PCB routing. GPIO8 supports PWM for backlight dimming.
 - **Fan PWM (GPIO21):** Clean output pin, no boot restrictions, PWM capable.
+- **Fan SSR (GPIO45):** Controls solid state relay to cut fan power when off.
+  Clean output pin, no boot restrictions.
 - **Tach inputs (GPIO38-41):** Grouped consecutively for clean layout.
   All support pulse counter peripheral.
 - **OneWire (GPIO4):** Same pin as current WT32-ETH01 design. No conflicts.
 - **User button (GPIO3):** Clean input pin with internal pull-up available.
-- **Status LED (GPIO48):** Located away from other functions to avoid
-  confusion on the PCB.
+- **Status LED (GPIO46):** ESPHome status indicator (blink on warning/error).
+- **Error LED (GPIO48):** Dedicated fan error strobe indicator.
 - **I2C (GPIO1, 2):** Reserved but not used. These are the pins recommended
   by LILYGO's own I2C example (WireExample) for T-ETH-Lite-S3.
 
